@@ -275,21 +275,17 @@ class PomBiss(Screen):
     # ============================================================
     
     def feedscanall(self):
-        """باز کردن Satfinder داخلی Image"""
-        from Screens.Standby import InStandby
-        
-        try:
-            # چک کردن Satfinder
-            if os.path.exists("/usr/lib/enigma2/python/Plugins/SystemPlugins/Satfinder/plugin.py"):
-                from Plugins.SystemPlugins.Satfinder.plugin import Satfinder
-                self.session.open(Satfinder)
-            else:
-                self.session.open(
-                    MessageBox,
-                    _("Satfinder Plugin Not Found!"),
-                    MessageBox.TYPE_ERROR,
-                    timeout=5
-                )
+    """Open Satfinder"""
+    try:
+        from Plugins.SystemPlugins.Satfinder.plugin import Satfinder
+        self.session.open(Satfinder)
+    except Exception as e:
+        self.session.open(
+            MessageBox,
+            _("Satfinder Error: %s") % str(e)[:100],
+            MessageBox.TYPE_ERROR,
+            timeout=10
+        )
         except Exception as exc:
             self.session.open(
                 MessageBox,
