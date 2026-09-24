@@ -318,3 +318,27 @@ class PomBiss(Screen):
     def cancel(self):
         """خروج از پلاگین"""
         self.close()
+        
+
+# ============================================================
+# MAIN FUNCTION
+# ============================================================
+
+def main(session, **kwargs):
+    """تابع اجرای پلاگین"""
+    session.open(PomBiss)
+
+
+# ============================================================
+# PLUGIN DESCRIPTOR
+# ============================================================
+
+def Plugins(**kwargs):
+    """معرفی پلاگین به Enigma2"""
+    return PluginDescriptor(
+        name="PomBiss",
+        description="Sports Feed Viewer",
+        where=PluginDescriptor.WHERE_PLUGINMENU,
+        icon="FSSLOGO.png",
+        fnc=main
+    )
