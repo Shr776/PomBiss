@@ -275,23 +275,41 @@ class PomBiss(Screen):
     # ============================================================
     
     def feedscanall(self):
-        """Open Satfinder"""
+        """Open Satfinder with current feed parameters"""
         try:
             from Plugins.SystemPlugins.Satfinder.plugin import Satfinder
-            self.session.open(Satfinder)
+            
+            # استخراج پارامترهای فید فعلی
+            line = self.allfeeds[self.feedindex]
+            parts = [p.strip() for p in line.split("=")]
+            freq_parts = parts[0].split()
+            
+            # پارامترها
+            sat_pos = freq_parts[0] if len(freq_parts) > 0 else "0"
+            freq = int(freq_parts[1]) if len(freq_parts) > 1 else 0
+            pol = freq_parts[2] if len(freq_parts) > 2 else "H"
+            sr = int(freq_parts[3]) if len(freq_parts) > 3 else 0
+            
+            # پلاریزاسیون: 0=H, 1=V
+            pol_num = 0 if pol.upper() == "H" else 1
+            
+            # موقعیت ماهواره (تبدیل به عدد)
+            sat_pos_int = int(sat_pos) if sat_pos else 0
+            
+            # باز کردن Satfinder با پارامترها
+            self.session.open(
+                Satfinder,
+                feq=freq,
+                sr=sr,
+                pol=pol_num,
+                satpos=sat_pos_int
+            )
         except Exception as e:
             self.session.open(
                 MessageBox,
                 _("Satfinder Error: %s") % str(e)[:100],
                 MessageBox.TYPE_ERROR,
                 timeout=10
-            )
-        except Exception as exc:
-            self.session.open(
-                MessageBox,
-                _("Scan Error: %s") % str(exc)[:60],
-                MessageBox.TYPE_ERROR,
-                timeout=5
             )
     
     # ============================================================
