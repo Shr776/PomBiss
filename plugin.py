@@ -213,7 +213,7 @@ class PomBiss(Screen):
         # نمایش اطلاعات
         self["Label11"].setText(title)
         self["Label22"].setText(sat_label)
-        self["Label33"].setText("%s %s %s %s" % (sat_pos, freq, pol, sr))
+        self["Label33"].setText("%s %s %s" % (freq, pol, sr))
         self["Label44"].setText(_("BISS Encrypted Feed"))
         
         self["Label1"].setText(quality)
