@@ -138,3 +138,183 @@ class PomBiss(Screen):
         
         # دانلود فیدها بعد از بارگذاری صفحه
         self.onLayoutFinish.append(self.download_feeds)
+            
+    # ============================================================
+    # DOWNLOAD FEEDS
+    # ============================================================
+    
+    def download_feeds(self):
+        """دانلود فایل feeds.txt از GitHub و نمایش فیدها"""
+        try:
+            self["Label11"].setText(_("Downloading feeds..."))
+            
+            # درخواست به GitHub
+            response = requests.get(FEEDS_URL, timeout=15)
+            
+            if response.status_code != 200:
+                self["Label11"].setText(_("Error: HTTP %s") % response.status_code)
+                return
+            
+            content = response.text
+            
+            # تقسیم به خطوط
+            lines = [line.strip() for line in content.splitlines() if line.strip()]
+            
+            if not lines:
+                self["Label11"].setText(_("No feeds available"))
+                return
+            
+            self.allfeeds = lines
+            self.feedindex = 0
+            self.show_feed()
+            
+        except requests.exceptions.Timeout:
+            self["Label11"].setText(_("Error: Timeout"))
+        except requests.exceptions.ConnectionError:
+            self["Label11"].setText(_("Error: No Internet"))
+        except Exception as exc:
+            self["Label11"].setText(_("Error: %s") % str(exc)[:60])
+    
+    # ============================================================
+    # SHOW FEED
+    # ============================================================
+    
+    def show_feed(self):
+        """نمایش فید فعلی روی صفحه"""
+        if not self.allfeeds:
+            return
+        
+        # خط فعلی
+        line = self.allfeeds[self.feedindex]
+        
+        # تقسیم با =
+        parts = [p.strip() for p in line.split("=")]
+        
+        # اطمینان از ۸ بخش
+        while len(parts) < 8:
+            parts.append("")
+        
+        # بخش ۱: sat_pos freq pol sr
+        freq_parts = parts[0].split()
+        sat_pos = freq_parts[0] if len(freq_parts) > 0 else ""
+        freq = freq_parts[1] if len(freq_parts) > 1 else ""
+        pol = freq_parts[2] if len(freq_parts) > 2 else ""
+        sr = freq_parts[3] if len(freq_parts) > 3 else ""
+        
+        # بخش‌های دیگه
+        cw_key = parts[1] if len(parts) > 1 else ""
+        title = parts[2] if len(parts) > 2 else ""
+        sat_label = parts[3] if len(parts) > 3 else ""
+        quality = parts[4] if len(parts) > 4 else ""
+        feed_id = parts[5] if len(parts) > 5 else ""
+        event = parts[6] if len(parts) > 6 else ""
+        teams = parts[7] if len(parts) > 7 else ""
+        
+        # نمایش اطلاعات
+        self["Label11"].setText(title)
+        self["Label22"].setText(sat_label)
+        self["Label33"].setText("%s %s %s %s" % (sat_pos, freq, pol, sr))
+        self["Label44"].setText(_("BISS Encrypted Feed"))
+        
+        self["Label1"].setText(quality)
+        self["Label2"].setText("")
+        self["Label3"].setText(feed_id)
+        self["Label4"].setText(event)
+        self["Label5"].setText(teams)
+        self["Label6"].setText(cw_key)
+        self["Label7"].setText(str(self.feedindex + 1))
+    
+    # ============================================================
+    # NAVIGATION
+    # ============================================================
+    
+    def kyleft(self):
+        """فید قبلی"""
+        if not self.allfeeds:
+            return
+        if self.feedindex > 0:
+            self.feedindex -= 1
+        else:
+            self.feedindex = len(self.allfeeds) - 1
+        self.show_feed()
+    
+    def kyright(self):
+        """فید بعدی"""
+        if not self.allfeeds:
+            return
+        if self.feedindex < len(self.allfeeds) - 1:
+            self.feedindex += 1
+        else:
+            self.feedindex = 0
+        self.show_feed()
+    
+    def kyup(self):
+        """برو به اولین فید"""
+        if not self.allfeeds:
+            return
+        self.feedindex = 0
+        self.show_feed()
+    
+    def kydown(self):
+        """برو به آخرین فید"""
+        if not self.allfeeds:
+            return
+        self.feedindex = len(self.allfeeds) - 1
+        self.show_feed()
+    
+    # ============================================================
+    # REFRESH
+    # ============================================================
+    
+    def refresh(self):
+        """دانلود مجدد فیدها"""
+        self.download_feeds()
+    
+    # ============================================================
+    # SCAN (Satfinder)
+    # ============================================================
+    
+    def feedscanall(self):
+        """باز کردن Satfinder داخلی Image"""
+        from Screens.Standby import InStandby
+        
+        try:
+            # چک کردن Satfinder
+            if os.path.exists("/usr/lib/enigma2/python/Plugins/SystemPlugins/Satfinder/plugin.py"):
+                from Plugins.SystemPlugins.Satfinder.plugin import Satfinder
+                self.session.open(Satfinder)
+            else:
+                self.session.open(
+                    MessageBox,
+                    _("Satfinder Plugin Not Found!"),
+                    MessageBox.TYPE_ERROR,
+                    timeout=5
+                )
+        except Exception as exc:
+            self.session.open(
+                MessageBox,
+                _("Scan Error: %s") % str(exc)[:60],
+                MessageBox.TYPE_ERROR,
+                timeout=5
+            )
+    
+    # ============================================================
+    # SETTINGS
+    # ============================================================
+    
+    def plconf(self):
+        """باز کردن تنظیمات"""
+        self.session.open(
+            MessageBox,
+            _("Settings coming soon..."),
+            MessageBox.TYPE_INFO,
+            timeout=3
+        )
+    
+    # ============================================================
+    # CANCEL
+    # ============================================================
+    
+    def cancel(self):
+        """خروج از پلاگین"""
+        self.close()
