@@ -275,17 +275,17 @@ class PomBiss(Screen):
     # ============================================================
     
     def feedscanall(self):
-    """Open Satfinder"""
-    try:
-        from Plugins.SystemPlugins.Satfinder.plugin import Satfinder
-        self.session.open(Satfinder)
-    except Exception as e:
-        self.session.open(
-            MessageBox,
-            _("Satfinder Error: %s") % str(e)[:100],
-            MessageBox.TYPE_ERROR,
-            timeout=10
-        )
+        """Open Satfinder"""
+        try:
+            from Plugins.SystemPlugins.Satfinder.plugin import Satfinder
+            self.session.open(Satfinder)
+        except Exception as e:
+            self.session.open(
+                MessageBox,
+                _("Satfinder Error: %s") % str(e)[:100],
+                MessageBox.TYPE_ERROR,
+                timeout=10
+            )
         except Exception as exc:
             self.session.open(
                 MessageBox,
