@@ -28,3 +28,17 @@ from Tools.Directories import resolveFilename, SCOPE_PLUGINS
 import os
 import sys
 import requests
+# ============================================================
+# SETTINGS
+# ============================================================
+
+# مسیر پوشه پلاگین روی رسیور
+plugin_dir = resolveFilename(SCOPE_PLUGINS, "Extensions/PomBiss")
+
+# آدرس فایل feeds.txt روی GitHub
+FEEDS_URL = "https://raw.githubusercontent.com/Shr776/PomBissFeeds/main/feeds.txt"
+
+# چک کردن FULLHD بودن رسیور
+FULLHD = False
+if getDesktop(0).size().width() > 1800:
+    FULLHD = True
