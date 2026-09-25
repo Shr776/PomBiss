@@ -256,33 +256,33 @@ class PomBiss(Screen):
 
     def feedscanall(self):
         """Open OpenBh's native Satfinder"""
-    try:
-        from Plugins.SystemPlugins.Satfinder.plugin import SatfinderExtra
-        self.session.open(SatfinderExtra)
-        return
-    except Exception as e:
-        pass
-    
-    try:
-        from Plugins.SystemPlugins.Satfinder.plugin import SatfinderMain
-        SatfinderMain(self.session)
-        return
-    except Exception as e:
-        pass
-    
-    try:
-        from Plugins.SystemPlugins.Satfinder.plugin import Satfinder
-        self.session.open(Satfinder)
-        return
-    except Exception as e:
-        pass
-    
-    self.session.open(
-        MessageBox,
-        _("Satfinder not found"),
-        MessageBox.TYPE_ERROR,
-        timeout=10
-    )
+        try:
+            from Plugins.SystemPlugins.Satfinder.plugin import SatfinderExtra
+            self.session.open(SatfinderExtra)
+            return
+        except Exception as e:
+            pass
+
+        try:
+            from Plugins.SystemPlugins.Satfinder.plugin import SatfinderMain
+            SatfinderMain(self.session)
+            return
+        except Exception as e:
+            pass
+
+        try:
+            from Plugins.SystemPlugins.Satfinder.plugin import Satfinder
+            self.session.open(Satfinder)
+            return
+        except Exception as e:
+            pass
+
+        self.session.open(
+            MessageBox,
+            _("Satfinder not found"),
+            MessageBox.TYPE_ERROR,
+            timeout=10
+        )
 
     def plconf(self):
         self.session.open(
