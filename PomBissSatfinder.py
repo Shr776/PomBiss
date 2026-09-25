@@ -1,17 +1,22 @@
 # -*- coding: utf-8 -*-
 """
 PomBiss Signal Finder
-Custom Signal Finder for PomBiss Plugin - Inherits from Satfinder
+Custom Signal Finder for PomBiss Plugin - Uses NavigationInstance
 """
 
-from enigma import eTimer, eDVBFrontendParametersSatellite, getDesktop
+from enigma import (
+    eTimer,
+    eDVBFrontendParametersSatellite,
+    eServiceReference,
+    iPlayableService,
+)
 from Screens.Screen import Screen
 from Components.Label import Label
 from Components.Pixmap import Pixmap
 from Components.ActionMap import ActionMap
 from Components.config import config
 from Tools.Directories import resolveFilename, SCOPE_PLUGINS
-from Components.NimManager import nimmanager
+import NavigationInstance
 
 plugin_dir = resolveFilename(SCOPE_PLUGINS, "Extensions/PomBiss")
 
@@ -26,7 +31,7 @@ def log_debug(msg):
 
 
 class PomBissSatfinder(Screen):
-    """Signal Finder اختصاصی PomBiss"""
+    """Signal Finder اختصاصی PomBiss - با استفاده از NavigationInstance"""
 
     skin = """
 <screen name="PomBissSatfinder" position="center,center" size="1502,950"
@@ -96,7 +101,6 @@ class PomBissSatfinder(Screen):
         self.session = session
         self.feed_params = feed_params or {}
 
-        # لاگ
         log_debug("STARTED")
         log_debug("feed_params = %s" % str(feed_params))
 
@@ -142,7 +146,7 @@ class PomBissSatfinder(Screen):
         )
 
         # متغیرها
-        self.frontend = None
+        self.service = None
         self.tp = None
         self.timer = eTimer()
         try:
@@ -156,7 +160,7 @@ class PomBissSatfinder(Screen):
         self.onLayoutFinish.append(self.start_tuning)
 
     def start_tuning(self):
-        """تنظیم Tuner روی فرکانس فید"""
+        """تنظیم Tuner با NavigationInstance"""
         try:
             sat_pos = self.feed_params.get("sat", "13.0E")
             freq = int(self.feed_params.get("freq", 0))
@@ -177,7 +181,20 @@ class PomBissSatfinder(Screen):
                 )
             )
 
-            # ساخت ترانسپوندر
+            # موقعیت مداری
+            try:
+                deg = float(sat_pos.replace("E", "").replace("W", "").strip())
+                if "W" in sat_pos.upper():
+                    deg = -deg
+                orbital_pos = int(deg * 10)
+            except:
+                orbital_pos = 130
+
+            # 🔧 روش NavigationInstance: ساخت یه ServiceReference موقت با فرکانس ما
+            # فرمت ServiceReference برای DVB-S:
+            # 1:0:0:0:0:0:0:0:0:0:/ (transponder)
+            
+            # ساخت Transponder
             tp = eDVBFrontendParametersSatellite()
             tp.frequency = freq * 1000
             tp.symbol_rate = sr * 1000
@@ -190,74 +207,28 @@ class PomBissSatfinder(Screen):
             tp.inversion = eDVBFrontendParametersSatellite.Inversion_Unknown
             tp.system = eDVBFrontendParametersSatellite.System_DVB_S2
             tp.modulation = eDVBFrontendParametersSatellite.Modulation_QPSK
-
-            try:
-                deg = float(sat_pos.replace("E", "").replace("W", "").strip())
-                if "W" in sat_pos.upper():
-                    deg = -deg
-                tp.orbital_position = int(deg * 10)
-            except:
-                tp.orbital_position = 130
+            tp.orbital_position = orbital_pos
 
             self.tp = tp
 
-            # 🔧 روش جدید: استفاده از prepareFrontend و retuneSat
-            nim_slot = int(config.plugins.PomBiss.nimnum.value)
-            nim = nimmanager.getNim(nim_slot)
-
-            log_debug("NIM type: %s" % str(type(nim)))
-            log_debug("NIM attrs: %s" % str([a for a in dir(nim) if not a.startswith('_')][:30]))
-
-            # تلاش برای گرفتن frontend
-            frontend = None
-
-            # روش ۱: از خود nim
-            if hasattr(nim, 'frontend'):
-                frontend = nim.frontend
-                log_debug("Got frontend from nim.frontend")
-
-            # روش ۲: از nimmanager
-            if frontend is None:
-                try:
-                    frontend = nimmanager.getNim(nim_slot).frontend
-                    log_debug("Got frontend from nimmanager.getNim")
-                except Exception as e:
-                    log_debug("nimmanager.getNim error: %s" % str(e))
-            # روش ۴: از nimmanager.getFrontend
-            if frontend is None:
-                try:
-                    frontend = nimmanager.getFrontend(nim_slot)
-                    log_debug("Got frontend from nimmanager.getFrontend")
-                except Exception as e:
-                    log_debug("getFrontend error: %s" % str(e))
-
-            # روش ۳: از nimmanager.getNimFrontend
-            if frontend is None:
-                try:
-                    frontend = nimmanager.getNimFrontend(nim_slot)
-                    log_debug("Got frontend from nimmanager.getNimFrontend")
-                except Exception as e:
-                    log_debug("getNimFrontend error: %s" % str(e))
-
-            if frontend is None:
-                log_debug("FAILED: Could not get frontend any way")
+            # استفاده از NavigationInstance برای تنظیم Tuner
+            nav = NavigationInstance.instance
+            if nav is None:
+                log_debug("NavigationInstance is None")
                 self["lock_value"].setText("ER")
                 return
 
-            self.frontend = frontend
-
-            # تنظیم Tuner
+            # ساخت ServiceReference موقت (بدون کانال واقعی، فقط برای تنظیم Tuner)
+            # فرمت: 1:0:0:0:0:0:0:0:0:0:/ 
             try:
-                self.frontend.tune(tp)
-                log_debug("tune() called")
-            except AttributeError:
-                try:
-                    self.frontend.setFrontend(tp)
-                    log_debug("setFrontend() called")
-                except Exception as e:
-                    log_debug("setFrontend error: %s" % str(e))
-                    self["lock_value"].setText("ER")
-                    return
+                # روش ۱: استفاده از playService
+                ref = eServiceReference("1:0:0:0:0:0:0:0:0:0:/")
+                nav.playService(ref)
+                log_debug("playService called")
+            except Exception as e:
+                log_debug("playService error: %s" % str(e))
+                self["lock_value"].setText("ER")
+                return
 
             # شروع Timer
             self.timer.start(500)
@@ -270,26 +241,38 @@ class PomBissSatfinder(Screen):
             self["lock_value"].setText("ER")
 
     def update_signal(self):
-        """خوندن SNR/AGC/BER/Lock"""
-        if self.frontend is None:
-            return
-
+        """خوندن SNR/AGC/BER/Lock از سرویس در حال پخش"""
         try:
-            status = {}
-            self.frontend.getFrontendStatus(status)
+            nav = NavigationInstance.instance
+            if nav is None:
+                return
 
-            snr = status.get("snr", 0)
+            service = nav.getCurrentlyPlayingServiceReference()
+            if service is None:
+                return
+
+            # گرفتن frontendInfo از سرویس
+            s = nav.getCurrentService()
+            if s is None:
+                return
+
+            frontendInfo = s.frontendInfo()
+            if frontendInfo is None:
+                return
+
+            # خوندن SNR/AGC/BER/Lock
+            snr = frontendInfo.get("snr", 0)
             self["snr_value"].setText("%d %%" % snr)
             self.set_bar("snr", snr)
 
-            agc = status.get("agc", 0)
+            agc = frontendInfo.get("agc", 0)
             self["agc_value"].setText("%d %%" % agc)
             self.set_bar("agc", agc)
 
-            ber = status.get("ber", 0)
+            ber = frontendInfo.get("ber", 0)
             self["ber_value"].setText(str(ber))
 
-            lock = status.get("lock", False)
+            lock = frontendInfo.get("lock", False)
             self["lock_value"].setText("✓" if lock else "✗")
 
         except Exception as e:
