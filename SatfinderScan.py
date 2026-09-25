@@ -10,7 +10,7 @@ from Screens.ServiceScan import ServiceScan
 from Screens.MessageBox import MessageBox
 from Components.Sources.FrontendStatus import FrontendStatus
 from Components.ActionMap import ActionMap
-from Components.NimManager import nimmanager
+from Components.NimManager import nimmanager, getConfigSatlist
 from Components.config import config, ConfigSelection, getConfigListEntry
 from Components.TuneTest import Tuner
 from Components.SystemInfo import SystemInfo
@@ -121,7 +121,15 @@ class PomBissScan(ScanSetup, ServiceScan):
         
         index_to_scan = int(config.plugins.PomBiss.nimnum.value)
         
+        try:
         self.DVB_type = self.nim_type_dict[index_to_scan]["selection"]
+except:
+    # fallback: از nimmanager استفاده کن
+    nim = nimmanager.nim_slots[index_to_scan]
+    if nim.isCompatible('DVB-S'):
+        self.DVB_type = type('obj', (object,), {'value': 'DVB-S'})()
+    else:
+        self.DVB_type = type('obj', (object,), {'value': 'DVB-S'})()
         
         if self.DVB_type.value == 'DVB-S':
             self.tuning_sat = self.scan_satselection[self.getSelectedSatIndex(self.feid)]
@@ -202,7 +210,7 @@ class PomBissScan(ScanSetup, ServiceScan):
             if slot.isCompatible('DVB-S'):
                 self.satList.append(nimmanager.getSatListForNim(slot.slot))
                 self.scan_satselection.append(
-                    getConfigListEntry('Satellite', self.scan_sat)
+                    getConfigSatlist(self.orbital_position, self.satList[slot.slot])
                 )
             else:
                 self.satList.append(None)
