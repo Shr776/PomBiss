@@ -1,25 +1,21 @@
 # -*- coding: utf-8 -*-
 """
 PomBiss Signal Finder
-Custom Signal Finder for PomBiss Plugin
+Custom Signal Finder for PomBiss Plugin - Inherits from Satfinder
 """
 
-from enigma import (
-    eDVBFrontendParametersSatellite,
-    eTimer,
-    iPlayableService,
-    getDesktop,
-)
+from enigma import eTimer, eDVBFrontendParametersSatellite, getDesktop
 from Screens.Screen import Screen
 from Components.Label import Label
 from Components.Pixmap import Pixmap
 from Components.ActionMap import ActionMap
-from Components.NimManager import nimmanager
 from Components.config import config
 from Tools.Directories import resolveFilename, SCOPE_PLUGINS
-import NavigationInstance
+from Components.NimManager import nimmanager
 
 plugin_dir = resolveFilename(SCOPE_PLUGINS, "Extensions/PomBiss")
+
+
 def log_debug(msg):
     """نوشتن لاگ توی فایل"""
     try:
@@ -92,23 +88,17 @@ class PomBissSatfinder(Screen):
     <widget name="key_red" position="120,860" size="250,50"
             font="Regular;28" transparent="1" foregroundColor="#FF0000"
             halign="center" />
-    <widget name="key_green" position="500,860" size="250,50"
-            font="Regular;28" transparent="1" foregroundColor="#00FF00"
-            halign="center" />
 </screen>
 """
 
     def __init__(self, session, feed_params=None):
         Screen.__init__(self, session)
-                # لاگ فوری برای تست
-        try:
-            with open("/tmp/PomBissSatfinder.log", "w") as f:
-                f.write("=== PomBissSatfinder STARTED ===\n")
-                f.write("feed_params = %s\n" % str(feed_params))
-        except Exception as e:
-            pass
         self.session = session
         self.feed_params = feed_params or {}
+
+        # لاگ
+        log_debug("STARTED")
+        log_debug("feed_params = %s" % str(feed_params))
 
         # لیبل‌ها
         self["title"] = Label("Signal Finder")
@@ -127,7 +117,6 @@ class PomBissSatfinder(Screen):
         self["info_value"] = Label("")
 
         self["key_red"] = Label("Cancel")
-        self["key_green"] = Label("")
 
         # پیکچرها
         self["snr_bar_bg"] = Pixmap()
@@ -142,7 +131,7 @@ class PomBissSatfinder(Screen):
 
         self["ber_bar_bg"] = Pixmap()
 
-        # دکمه‌ها - فعلاً فقط Cancel
+        # دکمه‌ها
         self["actions"] = ActionMap(
             ["SetupActions", "ColorActions"],
             {
@@ -173,6 +162,8 @@ class PomBissSatfinder(Screen):
             freq = int(self.feed_params.get("freq", 0))
             pol = self.feed_params.get("pol", "H")
             sr = int(self.feed_params.get("sr", 0))
+
+            log_debug("sat_pos=%s freq=%d pol=%s sr=%d" % (sat_pos, freq, pol, sr))
 
             # اطلاعات فید
             self["info_label"].setText(
@@ -210,39 +201,56 @@ class PomBissSatfinder(Screen):
 
             self.tp = tp
 
-            # گرفتن Tuner به روش صحیح
+            # 🔧 روش جدید: استفاده از prepareFrontend و retuneSat
             nim_slot = int(config.plugins.PomBiss.nimnum.value)
             nim = nimmanager.getNim(nim_slot)
 
-            # روش: frontend از nim
-            if hasattr(nim, 'frontend') and nim.frontend is not None:
-                self.frontend = nim.frontend
-                log_debug("Got frontend via nim.frontend")
-            else:
-                # روش جایگزین: از NimManager
+            log_debug("NIM type: %s" % str(type(nim)))
+            log_debug("NIM attrs: %s" % str([a for a in dir(nim) if not a.startswith('_')][:30]))
+
+            # تلاش برای گرفتن frontend
+            frontend = None
+
+            # روش ۱: از خود nim
+            if hasattr(nim, 'frontend'):
+                frontend = nim.frontend
+                log_debug("Got frontend from nim.frontend")
+
+            # روش ۲: از nimmanager
+            if frontend is None:
                 try:
-                    from Components.NimManager import nimmanager as nm
-                    self.frontend = nm.getNim(nim_slot).frontend
-                    log_debug("Got frontend via getNim")
+                    frontend = nimmanager.getNim(nim_slot).frontend
+                    log_debug("Got frontend from nimmanager.getNim")
                 except Exception as e:
-                    log_debug("Cannot get frontend: %s" % str(e))
-                    self["lock_value"].setText("ER")
-                    return
+                    log_debug("nimmanager.getNim error: %s" % str(e))
+
+            # روش ۳: از nimmanager.getNimFrontend
+            if frontend is None:
+                try:
+                    frontend = nimmanager.getNimFrontend(nim_slot)
+                    log_debug("Got frontend from nimmanager.getNimFrontend")
+                except Exception as e:
+                    log_debug("getNimFrontend error: %s" % str(e))
+
+            if frontend is None:
+                log_debug("FAILED: Could not get frontend any way")
+                self["lock_value"].setText("ER")
+                return
+
+            self.frontend = frontend
 
             # تنظیم Tuner
-            if self.frontend:
+            try:
+                self.frontend.tune(tp)
+                log_debug("tune() called")
+            except AttributeError:
                 try:
-                    self.frontend.tune(tp)
-                    log_debug("tune() called successfully")
+                    self.frontend.setFrontend(tp)
+                    log_debug("setFrontend() called")
                 except Exception as e:
-                    log_debug("tune() error: %s" % str(e))
-                    # روش جایگزین
-                    try:
-                        self.frontend.setFrontend(tp)
-                        log_debug("setFrontend() called")
-                    except Exception as e2:
-                        log_debug("setFrontend() error: %s" % str(e2))
-                        self["lock_value"].setText("ER")
+                    log_debug("setFrontend error: %s" % str(e))
+                    self["lock_value"].setText("ER")
+                    return
 
             # شروع Timer
             self.timer.start(500)
@@ -251,7 +259,7 @@ class PomBissSatfinder(Screen):
         except Exception as e:
             import traceback
             log_debug("start_tuning error: %s" % str(e))
-            traceback.print_exc()
+            log_debug("traceback: %s" % traceback.format_exc())
             self["lock_value"].setText("ER")
 
     def update_signal(self):
@@ -261,11 +269,7 @@ class PomBissSatfinder(Screen):
 
         try:
             status = {}
-            try:
-                self.frontend.getFrontendStatus(status)
-            except Exception as e:
-                log_debug("getFrontendStatus error: %s" % str(e))
-                return
+            self.frontend.getFrontendStatus(status)
 
             snr = status.get("snr", 0)
             self["snr_value"].setText("%d %%" % snr)
