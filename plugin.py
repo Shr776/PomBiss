@@ -302,51 +302,42 @@ class PomBiss(Screen):
     # ============================================================
     
     def feedscanall(self):
-        """Open Satfinder with current feed parameters"""
-        try:
-            # استخراج پارامترهای فید فعلی
-            line = self.allfeeds[self.feedindex]
-            parts = [p.strip() for p in line.split("=")]
-            freq_parts = parts[0].split()
-            
-            sat_pos = freq_parts[0] if len(freq_parts) > 0 else "0"
-            freq = int(freq_parts[1]) if len(freq_parts) > 1 else 0
-            pol = freq_parts[2] if len(freq_parts) > 2 else "H"
-            sr = int(freq_parts[3]) if len(freq_parts) > 3 else 0
-            
-            # پلاریزاسیون: 0=H, 1=V
-            pol_num = 0 if pol.upper() == "H" else 1
-            
-            # موقعیت ماهواره
-            sat_pos_int = int(sat_pos) if sat_pos else 0
-            
-            # باز کردن Satfinder با پارامترهای tuning_sat
-            from Plugins.SystemPlugins.Satfinder.plugin import Satfinder
-            
-            self.session.open(
-                Satfinder,
-                tuning_sat={
-                    "frequency": freq * 1000,
-                    "polarization": pol_num,
-                    "symbolrate": sr * 1000,
-                    "satpos": sat_pos_int,
-                    "system": 1,
-                    "inversion": 2,
-                    "fec": 0,
-                }
-            )
-        except Exception as e:
-            # اگه خطا داد، بدون پارامتر باز کن
-            try:
-                from Plugins.SystemPlugins.Satfinder.plugin import Satfinder
-                self.session.open(Satfinder)
-            except Exception as e2:
-                self.session.open(
-                    MessageBox,
-                    _("Satfinder Error: %s") % str(e2)[:100],
-                    MessageBox.TYPE_ERROR,
-                    timeout=10
-                )
+    """Open ScanSetup with current feed parameters"""
+    try:
+        # استخراج پارامترهای فید فعلی
+        line = self.allfeeds[self.feedindex]
+        parts = [p.strip() for p in line.split("=")]
+        freq_parts = parts[0].split()
+        
+        sat_pos = freq_parts[0] if len(freq_parts) > 0 else "0"
+        freq = int(freq_parts[1]) if len(freq_parts) > 1 else 0
+        pol = freq_parts[2] if len(freq_parts) > 2 else "H"
+        sr = int(freq_parts[3]) if len(freq_parts) > 3 else 0
+        
+        # پلاریزاسیون: 0=H, 1=V
+        pol_num = 0 if pol.upper() == "H" else 1
+        
+        # موقعیت ماهواره
+        sat_pos_int = int(sat_pos) if sat_pos else 0
+        
+        # ذخیره در config
+        config.plugins.PomBiss.feedpos.value = sat_pos_int
+        config.plugins.PomBiss.feedfreq.value = freq
+        config.plugins.PomBiss.feedpol.value = pol_num
+        config.plugins.PomBiss.feedsr.value = sr
+        config.plugins.PomBiss.save()
+        
+        # باز کردن ScanSetup با این پارامترها
+        from .SatfinderScan import PomBissScanMain
+        PomBissScanMain(self.session)
+        
+    except Exception as e:
+        self.session.open(
+            MessageBox,
+            _("Scan Error: %s") % str(e)[:150],
+            MessageBox.TYPE_ERROR,
+            timeout=10
+        )
     
     # ============================================================
     # SETTINGS
