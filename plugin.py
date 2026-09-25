@@ -62,16 +62,16 @@ class PomBiss(Screen):
     skinL = '''
 <screen name="PomBiss" position="center,center" size="1920,1080" title="PomBiss" flags="wfNoBorder" backgroundColor="#000000">
 
-    <!-- انار وسط -->
-    <ePixmap position="560,140" size="800,800" zPosition="1"
+    <!-- انار وسط (700×751) -->
+    <ePixmap position="610,165" size="700,751" zPosition="1"
              pixmap="''' + plugin_dir + '''/picon/anar.png" alphatest="on"/>
 
-    <!-- فلش چپ -->
-    <ePixmap position="180,500" size="300,200" zPosition="2"
+    <!-- فلش چپ (250×157) -->
+    <ePixmap position="250,540" size="250,157" zPosition="2"
              pixmap="''' + plugin_dir + '''/picon/arrow_left.png" alphatest="on"/>
 
-    <!-- فلش راست -->
-    <ePixmap position="1440,500" size="300,200" zPosition="2"
+    <!-- فلش راست (250×157) -->
+    <ePixmap position="1420,540" size="250,157" zPosition="2"
              pixmap="''' + plugin_dir + '''/picon/arrow_right.png" alphatest="on"/>
 
     <!-- Prev. بالا چپ -->
@@ -85,42 +85,42 @@ class PomBiss(Screen):
             halign="center" valign="center" zPosition="3"/>
 
     <!-- اطلاعات فید - داخل انار -->
-    <widget name="label_category" position="660,290" size="600,50"
+    <widget name="label_category" position="660,300" size="600,50"
+            font="Regular;30" transparent="1" foregroundColor="#FFFFFF"
+            halign="center" valign="center" zPosition="3"/>
+
+    <widget name="label_satellite" position="660,400" size="600,50"
             font="Regular;32" transparent="1" foregroundColor="#FFFFFF"
             halign="center" valign="center" zPosition="3"/>
 
-    <widget name="label_satellite" position="660,380" size="600,50"
-            font="Regular;34" transparent="1" foregroundColor="#FFFFFF"
+    <widget name="label_frequency" position="660,490" size="600,50"
+            font="Regular;30" transparent="1" foregroundColor="#FFFFFF"
             halign="center" valign="center" zPosition="3"/>
 
-    <widget name="label_frequency" position="660,470" size="600,50"
+    <widget name="label_id" position="660,610" size="600,50"
             font="Regular;32" transparent="1" foregroundColor="#FFFFFF"
             halign="center" valign="center" zPosition="3"/>
 
-    <widget name="label_id" position="660,600" size="600,50"
-            font="Regular;34" transparent="1" foregroundColor="#FFFFFF"
-            halign="center" valign="center" zPosition="3"/>
-
-    <widget name="label_cw" position="660,700" size="600,60"
+    <widget name="label_cw" position="660,710" size="600,60"
             font="Regular;34" transparent="1" foregroundColor="#FFFFFF"
             halign="center" valign="center" zPosition="3"/>
 
     <!-- دکمه‌های رنگی بیرون انار -->
-    <ePixmap position="640,960" size="140,70" zPosition="2"
+    <ePixmap position="660,950" size="140,70" zPosition="2"
              pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on"/>
-    <widget name="key_red" position="640,960" size="140,70"
+    <widget name="key_red" position="660,950" size="140,70"
             font="Regular;24" transparent="1" foregroundColor="#FFFFFF"
             halign="center" valign="center" zPosition="3"/>
 
-    <ePixmap position="820,960" size="140,70" zPosition="2"
+    <ePixmap position="840,950" size="140,70" zPosition="2"
              pixmap="''' + plugin_dir + '''/picon/bar_green.png" alphatest="on"/>
-    <widget name="key_green" position="820,960" size="140,70"
+    <widget name="key_green" position="840,950" size="140,70"
             font="Regular;24" transparent="1" foregroundColor="#FFFFFF"
             halign="center" valign="center" zPosition="3"/>
 
-    <ePixmap position="1000,960" size="140,70" zPosition="2"
+    <ePixmap position="1020,950" size="140,70" zPosition="2"
              pixmap="''' + plugin_dir + '''/picon/bar_yellow.png" alphatest="on"/>
-    <widget name="key_yellow" position="1000,960" size="140,70"
+    <widget name="key_yellow" position="1020,950" size="140,70"
             font="Regular;24" transparent="1" foregroundColor="#FFFFFF"
             halign="center" valign="center" zPosition="3"/>
 
@@ -164,23 +164,19 @@ class PomBiss(Screen):
             -1
         )
 
-        # متن‌های ثابت
         self["prev_text"] = Label("Prev.")
         self["next_text"] = Label("Next")
 
-        # اطلاعات فید
         self["label_category"] = Label("")
         self["label_satellite"] = Label("")
         self["label_frequency"] = Label("")
         self["label_id"] = Label("")
         self["label_cw"] = Label("")
 
-        # دکمه‌ها
         self["key_red"] = Label("FEED")
         self["key_green"] = Label("SCAN")
         self["key_yellow"] = Label("DVB-S2")
 
-        # متن‌های پایین
         self["text_autokey"] = Label("AUTOKEY")
         self["text_scan"] = Label("SCAN(OK)")
         self["text_setting"] = Label("SETTING")
@@ -232,7 +228,6 @@ class PomBiss(Screen):
         sat_label = parts[3] if len(parts) > 3 else ""
         feed_id = parts[5] if len(parts) > 5 else ""
 
-        # نمایش اطلاعات
         self["label_category"].setText("#" + title)
         self["label_satellite"].setText(sat_label if sat_label else sat_pos)
         self["label_frequency"].setText("Frequency: %s %s %s" % (freq, pol, sr))
@@ -273,7 +268,6 @@ class PomBiss(Screen):
         self.download_feeds()
 
     def feedscanall(self):
-        """Open OpenBh's native Satfinder"""
         try:
             from Plugins.SystemPlugins.Satfinder.plugin import SatfinderExtra
             self.session.open(SatfinderExtra)
@@ -314,17 +308,9 @@ class PomBiss(Screen):
         self.close()
 
 
-# ============================================================
-# MAIN FUNCTION
-# ============================================================
-
 def main(session, **kwargs):
     session.open(PomBiss)
 
-
-# ============================================================
-# PLUGIN DESCRIPTOR
-# ============================================================
 
 def Plugins(**kwargs):
     return PluginDescriptor(
