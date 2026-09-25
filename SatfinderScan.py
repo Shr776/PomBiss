@@ -121,14 +121,7 @@ class PomBissScan(ScanSetup, ServiceScan):
         
         index_to_scan = int(config.plugins.PomBiss.nimnum.value)
         
-        try:
-        self.DVB_type = self.nim_type_dict[index_to_scan]["selection"]
-except:
-    # fallback: از nimmanager استفاده کن
-    nim = nimmanager.nim_slots[index_to_scan]
-    if nim.isCompatible('DVB-S'):
-        self.DVB_type = type('obj', (object,), {'value': 'DVB-S'})()
-    else:
+                # همیشه DVB-S فرض می‌کنیم (چون برای ماهواره هستیم)
         self.DVB_type = type('obj', (object,), {'value': 'DVB-S'})()
         
         if self.DVB_type.value == 'DVB-S':
