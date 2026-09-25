@@ -136,7 +136,10 @@ class PomBissSatfinder(Screen):
         # متغیرها
         self.frontend = None
         self.timer = eTimer()
-        self.timer_conn = self.timer.timeout.connect(self.update_signal)
+        try:
+            self.timer.callback.append(self.update_signal)
+        except AttributeError:
+            self.timer_conn = self.timer.timeout.connect(self.update_signal)
 
         self.onLayoutFinish.append(self.start_tuning)
 
