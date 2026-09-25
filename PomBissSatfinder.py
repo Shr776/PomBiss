@@ -100,6 +100,13 @@ class PomBissSatfinder(Screen):
 
     def __init__(self, session, feed_params=None):
         Screen.__init__(self, session)
+                # لاگ فوری برای تست
+        try:
+            with open("/tmp/PomBissSatfinder.log", "w") as f:
+                f.write("=== PomBissSatfinder STARTED ===\n")
+                f.write("feed_params = %s\n" % str(feed_params))
+        except Exception as e:
+            pass
         self.session = session
         self.feed_params = feed_params or {}
 
