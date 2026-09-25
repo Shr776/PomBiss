@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 PomBiss Plugin for Enigma2
-Sports Feed Viewer - Neon Boxed Theme
+Sports Feed Viewer - Neon Tri-Color Theme
 """
 
 from __future__ import print_function
@@ -17,7 +17,6 @@ from Screens.Screen import Screen
 from Screens.MessageBox import MessageBox
 from Components.Label import Label
 from Components.ActionMap import ActionMap
-from Components.Pixmap import Pixmap
 from enigma import getDesktop
 from Tools.Directories import resolveFilename, SCOPE_PLUGINS
 
@@ -53,88 +52,105 @@ if getDesktop(0).size().width() > 1800:
 
 
 # ============================================================
-# MAIN SCREEN - POMBISS (NEON BOXED THEME)
+# MAIN SCREEN - POMBISS (NEON TRI-COLOR THEME)
 # ============================================================
 
 class PomBiss(Screen):
-    """صفحه اصلی پلاگین نمایش فیدها - تم کادری نئون"""
+    """صفحه اصلی پلاگین نمایش فیدها - تم سه‌رنگ نئون"""
 
     skinL = '''
 <screen name="PomBiss" position="center,center" size="1920,1080" title="PomBiss" flags="wfNoBorder" backgroundColor="#0a0a1a">
 
-    <!-- ============ عنوان PomBiss ============ -->
-    <ePixmap position="560,50" size="800,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
-    <widget name="title" position="560,65" size="800,60"
-            font="Regular;44" transparent="1" foregroundColor="#00ffff"
-            halign="center" valign="center" zPosition="3"/>
-    <ePixmap position="560,135" size="800,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+    <!-- ============ عنوان PomBiss - آبی نئون ============ -->
+    <widget name="line_title_top" position="710,50" size="500,3"
+            font="Regular;1" transparent="0" backgroundColor="#00aaff" />
+    <widget name="title" position="710,55" size="500,60"
+            font="Regular;42" transparent="1" foregroundColor="#00ffff"
+            halign="center" valign="center" />
+    <widget name="line_title_bot" position="710,120" size="500,3"
+            font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
-    <!-- ============ Prev / Next ============ -->
-    <ePixmap position="160,180" size="1600,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
-    <widget name="prev_text" position="220,195" size="400,60"
-            font="Regular;42" transparent="1" foregroundColor="#ff00ff"
-            halign="center" valign="center" zPosition="3"/>
-    <widget name="arrow_left" position="500,195" size="100,60"
-            font="Regular;44" transparent="1" foregroundColor="#ff00ff"
-            halign="center" valign="center" zPosition="3"/>
-    <widget name="arrow_right" position="1320,195" size="100,60"
-            font="Regular;44" transparent="1" foregroundColor="#ff00ff"
-            halign="center" valign="center" zPosition="3"/>
-    <widget name="next_text" position="1300,195" size="400,60"
-            font="Regular;42" transparent="1" foregroundColor="#ff00ff"
-            halign="center" valign="center" zPosition="3"/>
-    <ePixmap position="160,265" size="1600,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+    <!-- ============ Prev - آبی نئون ============ -->
+    <widget name="line_prev_top" position="200,180" size="500,3"
+            font="Regular;1" transparent="0" backgroundColor="#00aaff" />
+    <widget name="prev_text" position="200,185" size="500,60"
+            font="Regular;40" transparent="1" foregroundColor="#ff00ff"
+            halign="center" valign="center" />
+    <widget name="line_prev_bot" position="200,250" size="500,3"
+            font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
-    <!-- ============ کادر ۱: عنوان/دسته ============ -->
-    <ePixmap position="460,320" size="1000,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
-    <widget name="label_category" position="460,335" size="1000,65"
-            font="Regular;32" transparent="1" foregroundColor="#ffffff"
-            halign="center" valign="center" zPosition="3"/>
-    <ePixmap position="460,410" size="1000,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+    <!-- ============ Next - آبی نئون ============ -->
+    <widget name="line_next_top" position="1220,180" size="500,3"
+            font="Regular;1" transparent="0" backgroundColor="#00aaff" />
+    <widget name="next_text" position="1220,185" size="500,60"
+            font="Regular;40" transparent="1" foregroundColor="#ff00ff"
+            halign="center" valign="center" />
+    <widget name="line_next_bot" position="1220,250" size="500,3"
+            font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
-    <!-- ============ کادر ۲: ماهواره ============ -->
-    <ePixmap position="460,460" size="1000,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
-    <widget name="label_satellite" position="460,475" size="1000,65"
+    <!-- ============ کادر ۱: دسته‌بندی - قرمز نئون ============ -->
+    <widget name="line_cat_top" position="460,320" size="1000,3"
+            font="Regular;1" transparent="0" backgroundColor="#ff0000" />
+    <widget name="label_category" position="460,325" size="1000,60"
+            font="Regular;30" transparent="1" foregroundColor="#ffffff"
+            halign="center" valign="center" />
+    <widget name="line_cat_bot" position="460,390" size="1000,3"
+            font="Regular;1" transparent="0" backgroundColor="#ff0000" />
+
+    <!-- ============ کادر ۲: ماهواره - سبز نئون ============ -->
+    <widget name="line_sat_top" position="610,450" size="700,3"
+            font="Regular;1" transparent="0" backgroundColor="#00ff00" />
+    <widget name="label_satellite" position="610,455" size="700,60"
             font="Regular;34" transparent="1" foregroundColor="#ffffff"
-            halign="center" valign="center" zPosition="3"/>
-    <ePixmap position="460,550" size="1000,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+            halign="center" valign="center" />
+    <widget name="line_sat_bot" position="610,520" size="700,3"
+            font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
-    <!-- ============ کادر ۳: فرکانس ============ -->
-    <ePixmap position="460,600" size="1000,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
-    <widget name="label_frequency" position="460,615" size="1000,65"
-            font="Regular;32" transparent="1" foregroundColor="#ffffff"
-            halign="center" valign="center" zPosition="3"/>
-    <ePixmap position="460,690" size="1000,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+    <!-- ============ کادر ۳: فرکانس - آبی نئون ============ -->
+    <widget name="line_freq_top" position="510,580" size="900,3"
+            font="Regular;1" transparent="0" backgroundColor="#00aaff" />
+    <widget name="label_frequency" position="510,585" size="900,60"
+            font="Regular;30" transparent="1" foregroundColor="#ffffff"
+            halign="center" valign="center" />
+    <widget name="line_freq_bot" position="510,650" size="900,3"
+            font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
-    <!-- ============ کادر ۴: ID ============ -->
-    <ePixmap position="460,740" size="1000,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
-    <widget name="label_id" position="460,755" size="1000,65"
+    <!-- ============ کادر ۴: ID - سبز نئون ============ -->
+    <widget name="line_id_top" position="510,710" size="900,3"
+            font="Regular;1" transparent="0" backgroundColor="#00ff00" />
+    <widget name="label_id" position="510,715" size="900,60"
             font="Regular;34" transparent="1" foregroundColor="#ffffff"
-            halign="center" valign="center" zPosition="3"/>
-    <ePixmap position="460,830" size="1000,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+            halign="center" valign="center" />
+    <widget name="line_id_bot" position="510,780" size="900,3"
+            font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
-    <!-- ============ کادر ۵: CW Key ============ -->
-    <ePixmap position="460,880" size="1000,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
-    <widget name="label_cw" position="460,895" size="1000,70"
+    <!-- ============ کادر ۵: CW - قرمز نئون ============ -->
+    <widget name="line_cw_top" position="460,840" size="1000,3"
+            font="Regular;1" transparent="0" backgroundColor="#ff0000" />
+    <widget name="label_cw" position="460,845" size="1000,65"
             font="Regular;36" transparent="1" foregroundColor="#00ff00"
-            halign="center" valign="center" zPosition="3"/>
-    <ePixmap position="460,975" size="1000,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+            halign="center" valign="center" />
+    <widget name="line_cw_bot" position="460,915" size="1000,3"
+            font="Regular;1" transparent="0" backgroundColor="#ff0000" />
 
-    <!-- ============ دکمه‌های رنگی پایین ============ -->
-    <ePixmap position="760,1010" size="130,50" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
-    <widget name="key_red" position="760,1010" size="130,50"
-            font="Regular;22" transparent="1" foregroundColor="#ffffff"
-            halign="center" valign="center" zPosition="3"/>
+    <!-- ============ دکمه‌ها ============ -->
+    <widget name="btn_red_bg" position="760,970" size="130,55"
+            font="Regular;1" transparent="0" backgroundColor="#cc0000" />
+    <widget name="key_red" position="760,970" size="130,55"
+            font="Regular;24" transparent="1" foregroundColor="#ffffff"
+            halign="center" valign="center" />
 
-    <ePixmap position="900,1010" size="130,50" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_green.png" alphatest="on" />
-    <widget name="key_green" position="900,1010" size="130,50"
-            font="Regular;22" transparent="1" foregroundColor="#ffffff"
-            halign="center" valign="center" zPosition="3"/>
+    <widget name="btn_green_bg" position="900,970" size="130,55"
+            font="Regular;1" transparent="0" backgroundColor="#00cc00" />
+    <widget name="key_green" position="900,970" size="130,55"
+            font="Regular;24" transparent="1" foregroundColor="#ffffff"
+            halign="center" valign="center" />
 
-    <ePixmap position="1040,1010" size="130,50" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_yellow.png" alphatest="on" />
-    <widget name="key_yellow" position="1040,1010" size="130,50"
-            font="Regular;22" transparent="1" foregroundColor="#ffffff"
-            halign="center" valign="center" zPosition="3"/>
+    <widget name="btn_yellow_bg" position="1040,970" size="130,55"
+            font="Regular;1" transparent="0" backgroundColor="#cccc00" />
+    <widget name="key_yellow" position="1040,970" size="130,55"
+            font="Regular;24" transparent="1" foregroundColor="#ffffff"
+            halign="center" valign="center" />
 
 </screen>'''
 
@@ -163,14 +179,30 @@ class PomBiss(Screen):
             -1
         )
 
+        # خطوط (Label خالی برای پس‌زمینه)
+        self["line_title_top"] = Label("")
+        self["line_title_bot"] = Label("")
+        self["line_prev_top"] = Label("")
+        self["line_prev_bot"] = Label("")
+        self["line_next_top"] = Label("")
+        self["line_next_bot"] = Label("")
+        self["line_cat_top"] = Label("")
+        self["line_cat_bot"] = Label("")
+        self["line_sat_top"] = Label("")
+        self["line_sat_bot"] = Label("")
+        self["line_freq_top"] = Label("")
+        self["line_freq_bot"] = Label("")
+        self["line_id_top"] = Label("")
+        self["line_id_bot"] = Label("")
+        self["line_cw_top"] = Label("")
+        self["line_cw_bot"] = Label("")
+
         # عنوان بالا
-        self["title"] = Label("📡 PomBiss 📡")
+        self["title"] = Label("PomBiss")
 
         # Prev/Next
-        self["prev_text"] = Label("Prev.")
-        self["next_text"] = Label("Next")
-        self["arrow_left"] = Label("◄")
-        self["arrow_right"] = Label("►")
+        self["prev_text"] = Label("<<  Prev.")
+        self["next_text"] = Label("Next  >>")
 
         # اطلاعات فید
         self["label_category"] = Label("")
@@ -180,9 +212,12 @@ class PomBiss(Screen):
         self["label_cw"] = Label("")
 
         # دکمه‌ها
-        self["key_red"] = Label("🔴 FEED")
-        self["key_green"] = Label("🟢 SCAN")
-        self["key_yellow"] = Label("🟡 DVB")
+        self["btn_red_bg"] = Label("")
+        self["btn_green_bg"] = Label("")
+        self["btn_yellow_bg"] = Label("")
+        self["key_red"] = Label("FEED")
+        self["key_green"] = Label("SCAN")
+        self["key_yellow"] = Label("DVB")
 
         self.onLayoutFinish.append(self.download_feeds)
 
@@ -232,10 +267,10 @@ class PomBiss(Screen):
         feed_id = parts[5] if len(parts) > 5 else ""
 
         self["label_category"].setText("# " + title)
-        self["label_satellite"].setText("🛰  " + (sat_label if sat_label else sat_pos))
-        self["label_frequency"].setText("📡  Frequency: %s %s %s" % (freq, pol, sr))
-        self["label_id"].setText("🆔  ID: %s" % feed_id)
-        self["label_cw"].setText("🔐  CW: %s" % cw_key)
+        self["label_satellite"].setText(sat_label if sat_label else sat_pos)
+        self["label_frequency"].setText("Frequency: %s %s %s" % (freq, pol, sr))
+        self["label_id"].setText("ID: %s" % feed_id)
+        self["label_cw"].setText("CW: %s" % cw_key)
 
     def kyleft(self):
         if not self.allfeeds:
