@@ -155,7 +155,7 @@ class PomBissSatfinder(Screen):
             try:
                 self.timer_conn = self.timer.timeout.connect(self.update_signal)
             except Exception as e:
-                print("[PomBissSatfinder] timer error:", e)
+                log_debug("timer error: %s" % str(e))
 
         self.onLayoutFinish.append(self.start_tuning)
 
@@ -210,15 +210,15 @@ class PomBissSatfinder(Screen):
             # روش: frontend از nim
             if hasattr(nim, 'frontend') and nim.frontend is not None:
                 self.frontend = nim.frontend
-                print("[PomBissSatfinder] Got frontend via nim.frontend")
+                log_debug("Got frontend via nim.frontend")
             else:
                 # روش جایگزین: از NimManager
                 try:
                     from Components.NimManager import nimmanager as nm
                     self.frontend = nm.getNim(nim_slot).frontend
-                    print("[PomBissSatfinder] Got frontend via getNim")
+                    log_debug("Got frontend via getNim")
                 except Exception as e:
-                    print("[PomBissSatfinder] Cannot get frontend:", e)
+                    log_debug("Cannot get frontend: %s" % str(e))
                     self["lock_value"].setText("ER")
                     return
 
@@ -226,24 +226,24 @@ class PomBissSatfinder(Screen):
             if self.frontend:
                 try:
                     self.frontend.tune(tp)
-                    print("[PomBissSatfinder] tune() called successfully")
+                    log_debug("tune() called successfully")
                 except Exception as e:
-                    print("[PomBissSatfinder] tune() error:", e)
+                    log_debug("tune() error: %s" % str(e))
                     # روش جایگزین
                     try:
                         self.frontend.setFrontend(tp)
-                        print("[PomBissSatfinder] setFrontend() called")
+                        log_debug("setFrontend() called")
                     except Exception as e2:
-                        print("[PomBissSatfinder] setFrontend() error:", e2)
+                        log_debug("setFrontend() error: %s" % str(e2))
                         self["lock_value"].setText("ER")
 
             # شروع Timer
             self.timer.start(500)
-            print("[PomBissSatfinder] Timer started")
+            log_debug("Timer started")
 
         except Exception as e:
             import traceback
-            print("[PomBissSatfinder] start_tuning error:", e)
+            log_debug("start_tuning error: %s" % str(e))
             traceback.print_exc()
             self["lock_value"].setText("ER")
 
@@ -257,7 +257,7 @@ class PomBissSatfinder(Screen):
             try:
                 self.frontend.getFrontendStatus(status)
             except Exception as e:
-                print("[PomBissSatfinder] getFrontendStatus error:", e)
+            log_debug("getFrontendStatus error: %s" % str(e))
                 return
 
             snr = status.get("snr", 0)
@@ -275,7 +275,7 @@ class PomBissSatfinder(Screen):
             self["lock_value"].setText("✓" if lock else "✗")
 
         except Exception as e:
-            print("[PomBissSatfinder] update_signal error:", e)
+            log_debug("update_signal error: %s" % str(e))
 
     def set_bar(self, name, value):
         """تنظیم عرض نوارهای رنگی"""
@@ -292,7 +292,7 @@ class PomBissSatfinder(Screen):
             self[name + "_bar_green"].instance.setPixmapSize(green_w, 30)
 
         except Exception as e:
-            print("[PomBissSatfinder] set_bar error:", e)
+            log_debug("set_bar error: %s" % str(e))
 
     def close_screen(self):
         """توقف Timer و بستن"""
