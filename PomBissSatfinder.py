@@ -20,6 +20,13 @@ from Tools.Directories import resolveFilename, SCOPE_PLUGINS
 import NavigationInstance
 
 plugin_dir = resolveFilename(SCOPE_PLUGINS, "Extensions/PomBiss")
+def log_debug(msg):
+    """نوشتن لاگ توی فایل"""
+    try:
+        with open("/tmp/PomBissSatfinder.log", "a") as f:
+            f.write("[PomBissSatfinder] %s\n" % msg)
+    except:
+        pass
 
 
 class PomBissSatfinder(Screen):
