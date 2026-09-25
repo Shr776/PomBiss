@@ -257,7 +257,7 @@ class PomBissSatfinder(Screen):
             try:
                 self.frontend.getFrontendStatus(status)
             except Exception as e:
-            log_debug("getFrontendStatus error: %s" % str(e))
+                log_debug("getFrontendStatus error: %s" % str(e))
                 return
 
             snr = status.get("snr", 0)
