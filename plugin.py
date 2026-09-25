@@ -2,43 +2,29 @@
 # -*- coding: utf-8 -*-
 """
 PomBiss Plugin for Enigma2
-Sports Feed Viewer
+Sports Feed Viewer - Anar Theme
 """
 
 from __future__ import print_function
 
-# برای ترجمه
 try:
     from . import _
 except:
     pass
 
-# Enigma2 core
 from Plugins.Plugin import PluginDescriptor
 from Screens.Screen import Screen
 from Screens.MessageBox import MessageBox
 from Components.Label import Label
 from Components.ActionMap import ActionMap
 from Components.Pixmap import Pixmap
-from Components.AVSwitch import AVSwitch
-from enigma import ePicLoad, ePixmap, getDesktop
+from enigma import getDesktop
 from Tools.Directories import resolveFilename, SCOPE_PLUGINS
 
-# Python standard
-import os
-import sys
 import requests
-
-# ============================================================
-# SETTINGS
-# ============================================================
 
 plugin_dir = resolveFilename(SCOPE_PLUGINS, "Extensions/PomBiss")
 FEEDS_URL = "https://raw.githubusercontent.com/Shr776/PomBissFeeds/main/feeds.txt"
-
-# ============================================================
-# CONFIG
-# ============================================================
 
 from Components.config import config, ConfigSubsection, ConfigInteger, ConfigSelection
 from Components.NimManager import nimmanager
@@ -71,60 +57,91 @@ if getDesktop(0).size().width() > 1800:
 # ============================================================
 
 class PomBiss(Screen):
-    """صفحه اصلی پلاگین نمایش فیدها"""
+    """صفحه اصلی پلاگین نمایش فیدها - تم انار"""
 
     skinL = '''
-<screen name="PomBiss" position="center,center" size="1502,950" title="PomBiss Feed Viewer" flags="wfNoBorder" backgroundColor="transparent">
-    <ePixmap position="0,0" size="1502,950" zPosition="0" pixmap="''' + plugin_dir + '''/BISSFFS6.png"/>
+<screen name="PomBiss" position="center,center" size="1920,1080" title="PomBiss" flags="wfNoBorder" backgroundColor="#000000">
 
-    <widget name="Label11" position="520,135" size="480,40" font="Regular;34" transparent="1" halign="center" zPosition="1"/>
-    <widget name="Label22" position="500,195" size="265,40" font="Regular;26" transparent="1" halign="center" zPosition="1"/>
-    <widget name="Label33" position="745,195" size="270,40" font="Regular;30" transparent="1" halign="center" zPosition="1"/>
-    <widget name="Label44" position="525,260" size="490,40" font="Regular;30" transparent="1" halign="center" zPosition="1"/>
+    <!-- انار وسط -->
+    <ePixmap position="560,140" size="800,800" zPosition="1"
+             pixmap="''' + plugin_dir + '''/picon/anar.png" alphatest="on"/>
 
-    <widget name="Label1" position="520,323" size="350,40" font="Regular;30" transparent="1" halign="center" zPosition="1"/>
-    <widget name="Label2" position="893,325" size="100,40" font="Regular;32" transparent="1" halign="center" zPosition="1"/>
-    <widget name="Label3" position="515,388" size="485,40" font="Regular;26" transparent="1" halign="center" zPosition="1"/>
-    <widget name="Label4" position="500,450" size="250,50" font="Regular;32" transparent="1" halign="center" zPosition="1"/>
-    <widget name="Label5" position="740,455" size="270,40" font="Regular;26" transparent="1" halign="center" zPosition="1"/>
-    <widget name="Label6" position="510,508" size="500,50" font="Regular;30" transparent="1" halign="center" zPosition="1"/>
-    <widget name="Label7" position="687,596" size="145,95" font="Regular;70" transparent="1" halign="center" valign="center" zPosition="3"/>
+    <!-- فلش چپ -->
+    <ePixmap position="180,500" size="300,200" zPosition="2"
+             pixmap="''' + plugin_dir + '''/picon/arrow_left.png" alphatest="on"/>
 
-    <ePixmap position="687,598" size="145,95" alphatest="on" zPosition="2" pixmap="''' + plugin_dir + '''/picon/feednofh.png"/>
-    <ePixmap position="517,596" size="145,95" alphatest="on" zPosition="2" pixmap="''' + plugin_dir + '''/picon/feedfh.png"/>
-    <ePixmap position="857,598" size="145,95" alphatest="on" zPosition="2" pixmap="''' + plugin_dir + '''/picon/satfh.png"/>
-</screen>'''
+    <!-- فلش راست -->
+    <ePixmap position="1440,500" size="300,200" zPosition="2"
+             pixmap="''' + plugin_dir + '''/picon/arrow_right.png" alphatest="on"/>
 
-    skinS = '''
-<screen name="PomBiss" position="center,center" size="1001,600" title="PomBiss Feed Viewer" flags="wfNoBorder" backgroundColor="transparent">
-    <ePixmap position="0,0" size="1001,600" zPosition="0" pixmap="''' + plugin_dir + '''/BISSFFS7.png"/>
+    <!-- Prev. بالا چپ -->
+    <widget name="prev_text" position="200,180" size="400,80"
+            font="Regular;56" transparent="1" foregroundColor="#FF6600"
+            halign="center" valign="center" zPosition="3"/>
 
-    <widget name="Label11" position="345,89" size="320,27" font="Regular;24" transparent="1" halign="center" zPosition="1"/>
-    <widget name="Label22" position="345,131" size="175,27" font="Regular;18" transparent="1" halign="center" zPosition="1"/>
-    <widget name="Label33" position="500,131" size="170,27" font="Regular;20" transparent="1" halign="center" zPosition="1"/>
-    <widget name="Label44" position="353,173" size="310,27" font="Regular;19" transparent="1" halign="center" zPosition="1"/>
+    <!-- Next بالا راست -->
+    <widget name="next_text" position="1320,180" size="400,80"
+            font="Regular;56" transparent="1" foregroundColor="#00FF00"
+            halign="center" valign="center" zPosition="3"/>
 
-    <widget name="Label1" position="342,215" size="250,25" font="Regular;20" transparent="1" halign="center" zPosition="1"/>
-    <widget name="Label2" position="593,215" size="80,25" font="Regular;20" transparent="1" halign="center" zPosition="1"/>
-    <widget name="Label3" position="345,258" size="325,25" font="Regular;20" transparent="1" halign="center" zPosition="1"/>
-    <widget name="Label4" position="347,300" size="150,25" font="Regular;20" transparent="1" halign="center" zPosition="1"/>
-    <widget name="Label5" position="510,300" size="150,25" font="Regular;20" transparent="1" halign="center" zPosition="1"/>
-    <widget name="Label6" position="347,339" size="300,27" font="Regular;23" transparent="1" halign="center" zPosition="1"/>
-    <widget name="Label7" position="458,399" size="100,66" font="Regular;46" transparent="1" halign="center" zPosition="1"/>
+    <!-- اطلاعات فید - داخل انار -->
+    <widget name="label_category" position="660,290" size="600,50"
+            font="Regular;32" transparent="1" foregroundColor="#FFFFFF"
+            halign="center" valign="center" zPosition="3"/>
 
-    <ePixmap position="567,396" size="105,68" alphatest="on" zPosition="2" pixmap="''' + plugin_dir + '''/picon/sat.png"/>
-    <ePixmap position="455,396" size="105,68" alphatest="on" zPosition="2" pixmap="''' + plugin_dir + '''/picon/feedno.png"/>
-    <ePixmap position="340,396" size="105,68" alphatest="on" zPosition="2" pixmap="''' + plugin_dir + '''/picon/feed.png"/>
+    <widget name="label_satellite" position="660,380" size="600,50"
+            font="Regular;34" transparent="1" foregroundColor="#FFFFFF"
+            halign="center" valign="center" zPosition="3"/>
+
+    <widget name="label_frequency" position="660,470" size="600,50"
+            font="Regular;32" transparent="1" foregroundColor="#FFFFFF"
+            halign="center" valign="center" zPosition="3"/>
+
+    <widget name="label_id" position="660,600" size="600,50"
+            font="Regular;34" transparent="1" foregroundColor="#FFFFFF"
+            halign="center" valign="center" zPosition="3"/>
+
+    <widget name="label_cw" position="660,700" size="600,60"
+            font="Regular;34" transparent="1" foregroundColor="#FFFFFF"
+            halign="center" valign="center" zPosition="3"/>
+
+    <!-- دکمه‌های رنگی بیرون انار -->
+    <ePixmap position="640,960" size="140,70" zPosition="2"
+             pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on"/>
+    <widget name="key_red" position="640,960" size="140,70"
+            font="Regular;24" transparent="1" foregroundColor="#FFFFFF"
+            halign="center" valign="center" zPosition="3"/>
+
+    <ePixmap position="820,960" size="140,70" zPosition="2"
+             pixmap="''' + plugin_dir + '''/picon/bar_green.png" alphatest="on"/>
+    <widget name="key_green" position="820,960" size="140,70"
+            font="Regular;24" transparent="1" foregroundColor="#FFFFFF"
+            halign="center" valign="center" zPosition="3"/>
+
+    <ePixmap position="1000,960" size="140,70" zPosition="2"
+             pixmap="''' + plugin_dir + '''/picon/bar_yellow.png" alphatest="on"/>
+    <widget name="key_yellow" position="1000,960" size="140,70"
+            font="Regular;24" transparent="1" foregroundColor="#FFFFFF"
+            halign="center" valign="center" zPosition="3"/>
+
+    <!-- متن‌های پایین -->
+    <widget name="text_autokey" position="180,1050" size="350,60"
+            font="Regular;40" transparent="1" foregroundColor="#00FF00"
+            halign="center" valign="center" zPosition="3"/>
+
+    <widget name="text_scan" position="720,1050" size="480,60"
+            font="Regular;40" transparent="1" foregroundColor="#FFFF00"
+            halign="center" valign="center" zPosition="3"/>
+
+    <widget name="text_setting" position="1380,1050" size="350,60"
+            font="Regular;40" transparent="1" foregroundColor="#00AAFF"
+            halign="center" valign="center" zPosition="3"/>
+
 </screen>'''
 
     def __init__(self, session):
         self.session = session
-
-        if FULLHD:
-            self.skin = self.skinL
-        else:
-            self.skin = self.skinS
-
+        self.skin = self.skinL
         Screen.__init__(self, session)
 
         self.allfeeds = []
@@ -147,44 +164,54 @@ class PomBiss(Screen):
             -1
         )
 
-        for i in [11, 22, 33, 44, 1, 2, 3, 4, 5, 6, 7]:
-            self["Label" + str(i)] = Label("")
+        # متن‌های ثابت
+        self["prev_text"] = Label("Prev.")
+        self["next_text"] = Label("Next")
 
-        self["Label11"] = Label(_("Loading feeds..."))
+        # اطلاعات فید
+        self["label_category"] = Label("")
+        self["label_satellite"] = Label("")
+        self["label_frequency"] = Label("")
+        self["label_id"] = Label("")
+        self["label_cw"] = Label("")
+
+        # دکمه‌ها
+        self["key_red"] = Label("FEED")
+        self["key_green"] = Label("SCAN")
+        self["key_yellow"] = Label("DVB-S2")
+
+        # متن‌های پایین
+        self["text_autokey"] = Label("AUTOKEY")
+        self["text_scan"] = Label("SCAN(OK)")
+        self["text_setting"] = Label("SETTING")
 
         self.onLayoutFinish.append(self.download_feeds)
 
     def download_feeds(self):
-        """دانلود فایل feeds.txt از GitHub و نمایش فیدها"""
         try:
-            self["Label11"].setText(_("Downloading feeds..."))
+            self["label_category"].setText(_("Downloading..."))
 
             response = requests.get(FEEDS_URL, timeout=15)
 
             if response.status_code != 200:
-                self["Label11"].setText(_("Error: HTTP %s") % response.status_code)
+                self["label_category"].setText(_("Error: HTTP %s") % response.status_code)
                 return
 
             content = response.text
             lines = [line.strip() for line in content.splitlines() if line.strip()]
 
             if not lines:
-                self["Label11"].setText(_("No feeds available"))
+                self["label_category"].setText(_("No feeds available"))
                 return
 
             self.allfeeds = lines
             self.feedindex = 0
             self.show_feed()
 
-        except requests.exceptions.Timeout:
-            self["Label11"].setText(_("Error: Timeout"))
-        except requests.exceptions.ConnectionError:
-            self["Label11"].setText(_("Error: No Internet"))
         except Exception as exc:
-            self["Label11"].setText(_("Error: %s") % str(exc)[:60])
+            self["label_category"].setText(_("Error: %s") % str(exc)[:60])
 
     def show_feed(self):
-        """نمایش فید فعلی روی صفحه"""
         if not self.allfeeds:
             return
 
@@ -203,23 +230,14 @@ class PomBiss(Screen):
         cw_key = parts[1] if len(parts) > 1 else ""
         title = parts[2] if len(parts) > 2 else ""
         sat_label = parts[3] if len(parts) > 3 else ""
-        quality = parts[4] if len(parts) > 4 else ""
         feed_id = parts[5] if len(parts) > 5 else ""
-        event = parts[6] if len(parts) > 6 else ""
-        teams = parts[7] if len(parts) > 7 else ""
 
-        self["Label11"].setText(title)
-        self["Label22"].setText(sat_label)
-        self["Label33"].setText("%s %s %s" % (freq, pol, sr))
-        self["Label44"].setText(_("BISS Encrypted Feed"))
-
-        self["Label1"].setText(quality)
-        self["Label2"].setText("")
-        self["Label3"].setText(feed_id)
-        self["Label4"].setText(event)
-        self["Label5"].setText(teams)
-        self["Label6"].setText(cw_key)
-        self["Label7"].setText(str(self.feedindex + 1))
+        # نمایش اطلاعات
+        self["label_category"].setText("#" + title)
+        self["label_satellite"].setText(sat_label if sat_label else sat_pos)
+        self["label_frequency"].setText("Frequency: %s %s %s" % (freq, pol, sr))
+        self["label_id"].setText("ID: %s" % feed_id)
+        self["label_cw"].setText("CW: %s" % cw_key)
 
     def kyleft(self):
         if not self.allfeeds:
@@ -260,21 +278,21 @@ class PomBiss(Screen):
             from Plugins.SystemPlugins.Satfinder.plugin import SatfinderExtra
             self.session.open(SatfinderExtra)
             return
-        except Exception as e:
+        except Exception:
             pass
 
         try:
             from Plugins.SystemPlugins.Satfinder.plugin import SatfinderMain
             SatfinderMain(self.session)
             return
-        except Exception as e:
+        except Exception:
             pass
 
         try:
             from Plugins.SystemPlugins.Satfinder.plugin import Satfinder
             self.session.open(Satfinder)
             return
-        except Exception as e:
+        except Exception:
             pass
 
         self.session.open(
