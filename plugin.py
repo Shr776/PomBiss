@@ -62,16 +62,16 @@ class PomBiss(Screen):
     skinL = '''
 <screen name="PomBiss" position="center,center" size="1920,1080" title="PomBiss" flags="wfNoBorder" backgroundColor="#000000">
 
-    <!-- انار وسط (700×751) -->
-    <ePixmap position="610,165" size="700,751" zPosition="1"
+    <!-- انار وسط (751×806) -->
+    <ePixmap position="584,137" size="751,806" zPosition="1"
              pixmap="''' + plugin_dir + '''/picon/anar.png" alphatest="on"/>
 
-    <!-- فلش چپ (250×157) -->
-    <ePixmap position="250,540" size="250,157" zPosition="2"
+    <!-- فلش چپ (157×98) -->
+    <ePixmap position="296,560" size="157,98" zPosition="2"
              pixmap="''' + plugin_dir + '''/picon/arrow_left.png" alphatest="on"/>
 
-    <!-- فلش راست (250×157) -->
-    <ePixmap position="1420,540" size="250,157" zPosition="2"
+    <!-- فلش راست (157×98) -->
+    <ePixmap position="1467,560" size="157,98" zPosition="2"
              pixmap="''' + plugin_dir + '''/picon/arrow_right.png" alphatest="on"/>
 
     <!-- Prev. بالا چپ -->
