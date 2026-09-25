@@ -8,7 +8,6 @@ from enigma import (
     eDVBFrontendParametersSatellite,
     eTimer,
     iPlayableService,
-    eServiceReference,
     getDesktop,
 )
 from Screens.Screen import Screen
@@ -114,7 +113,7 @@ class PomBissSatfinder(Screen):
         self["info_value"] = Label("")
 
         self["key_red"] = Label("Cancel")
-        self["key_green"] = Label("Scan")
+        self["key_green"] = Label("")
 
         # پیکچرها
         self["snr_bar_bg"] = Pixmap()
@@ -129,13 +128,12 @@ class PomBissSatfinder(Screen):
 
         self["ber_bar_bg"] = Pixmap()
 
-        # دکمه‌ها
+        # دکمه‌ها - فعلاً فقط Cancel
         self["actions"] = ActionMap(
             ["SetupActions", "ColorActions"],
             {
                 "cancel": self.close_screen,
                 "red": self.close_screen,
-                "green": self.scan,
             },
             -1
         )
@@ -144,7 +142,6 @@ class PomBissSatfinder(Screen):
         self.frontend = None
         self.tp = None
         self.timer = eTimer()
-        # پشتیبانی از هر دو روش eTimer
         try:
             self.timer.callback.append(self.update_signal)
         except AttributeError:
@@ -163,14 +160,13 @@ class PomBissSatfinder(Screen):
             pol = self.feed_params.get("pol", "H")
             sr = int(self.feed_params.get("sr", 0))
 
-            # اطلاعات فید (نمایش Satellite به صورت 13.0E نه 130)
-            sat_display = sat_pos if "E" in sat_pos.upper() or "W" in sat_pos.upper() else str(sat_pos)
+            # اطلاعات فید
             self["info_label"].setText(
                 "Satellite:\nSystem:\nFrequency:\nPolarization:\nSymbol rate:\nInversion:\nFEC:"
             )
             self["info_value"].setText(
                 "%s\nDVB-S2\n%d\n%s\n%d\nAuto\nAuto" % (
-                    sat_display, freq,
+                    sat_pos, freq,
                     "horizontal" if pol.upper() == "H" else "vertical",
                     sr
                 )
@@ -190,7 +186,6 @@ class PomBissSatfinder(Screen):
             tp.system = eDVBFrontendParametersSatellite.System_DVB_S2
             tp.modulation = eDVBFrontendParametersSatellite.Modulation_QPSK
 
-            # موقعیت مداری
             try:
                 deg = float(sat_pos.replace("E", "").replace("W", "").strip())
                 if "W" in sat_pos.upper():
@@ -201,24 +196,39 @@ class PomBissSatfinder(Screen):
 
             self.tp = tp
 
-            # گرفتن Tuner
+            # گرفتن Tuner به روش صحیح
             nim_slot = int(config.plugins.PomBiss.nimnum.value)
-            self.frontend = nimmanager.getNim(nim_slot).frontend
+            nim = nimmanager.getNim(nim_slot)
 
-            # 🔧 روش صحیح تنظیم Tuner در OpenBh 6.0
-            # روش ۱: استفاده از tune
-            try:
-                self.frontend.tune(tp)
-                print("[PomBissSatfinder] tune() OK")
-            except AttributeError:
-                # روش ۲: استفاده از setFrontend
+            # روش: frontend از nim
+            if hasattr(nim, 'frontend') and nim.frontend is not None:
+                self.frontend = nim.frontend
+                print("[PomBissSatfinder] Got frontend via nim.frontend")
+            else:
+                # روش جایگزین: از NimManager
                 try:
-                    self.frontend.setFrontend(tp)
-                    print("[PomBissSatfinder] setFrontend() OK")
-                except AttributeError:
-                    # روش ۳: استفاده از iPlayableService
-                    print("[PomBissSatfinder] trying iPlayableService...")
-                    self._tune_via_service(tp)
+                    from Components.NimManager import nimmanager as nm
+                    self.frontend = nm.getNim(nim_slot).frontend
+                    print("[PomBissSatfinder] Got frontend via getNim")
+                except Exception as e:
+                    print("[PomBissSatfinder] Cannot get frontend:", e)
+                    self["lock_value"].setText("ER")
+                    return
+
+            # تنظیم Tuner
+            if self.frontend:
+                try:
+                    self.frontend.tune(tp)
+                    print("[PomBissSatfinder] tune() called successfully")
+                except Exception as e:
+                    print("[PomBissSatfinder] tune() error:", e)
+                    # روش جایگزین
+                    try:
+                        self.frontend.setFrontend(tp)
+                        print("[PomBissSatfinder] setFrontend() called")
+                    except Exception as e2:
+                        print("[PomBissSatfinder] setFrontend() error:", e2)
+                        self["lock_value"].setText("ER")
 
             # شروع Timer
             self.timer.start(500)
@@ -230,23 +240,6 @@ class PomBissSatfinder(Screen):
             traceback.print_exc()
             self["lock_value"].setText("ER")
 
-    def _tune_via_service(self, tp):
-        """روش جایگزین تنظیم Tuner با iPlayableService"""
-        try:
-            # ساخت یک ServiceReference موقت
-            ref = eServiceReference(
-                1,  # نوع سرویس: DVB
-                0,
-                "1:0:1:0:0:0:0:0:0:0:/"  # مسیر موقت
-            )
-            # تنظیم Tuner از طریق NavigationInstance
-            nav = NavigationInstance.instance
-            if nav:
-                # این روش خودش Tuner رو تنظیم می‌کنه
-                print("[PomBissSatfinder] Using NavigationInstance")
-        except Exception as e:
-            print("[PomBissSatfinder] _tune_via_service error:", e)
-
     def update_signal(self):
         """خوندن SNR/AGC/BER/Lock"""
         if self.frontend is None:
@@ -257,15 +250,8 @@ class PomBissSatfinder(Screen):
             try:
                 self.frontend.getFrontendStatus(status)
             except Exception as e:
-                # اگه getFrontendStatus کار نکرد، از iPlayableService استفاده کن
-                try:
-                    service = self.session.nav.getCurrentService()
-                    if service:
-                        frontend_info = service.frontendInfo()
-                        if frontend_info:
-                            status = frontend_info.getAll()
-                except:
-                    pass
+                print("[PomBissSatfinder] getFrontendStatus error:", e)
+                return
 
             snr = status.get("snr", 0)
             self["snr_value"].setText("%d %%" % snr)
@@ -300,28 +286,6 @@ class PomBissSatfinder(Screen):
 
         except Exception as e:
             print("[PomBissSatfinder] set_bar error:", e)
-
-    def scan(self):
-        """باز کردن ScanSetup با پارامترهای فید فعلی"""
-        try:
-            from Screens.ScanSetup import ScanSetup
-            from Screens.ScanSetup import ScanSimple
-
-            # ساخت Setup با transponder
-            if self.tp:
-                self.session.open(ScanSetup, transponder=self.tp, scan_type="single")
-            else:
-                self.session.open(ScanSetup)
-        except Exception as e:
-            print("[PomBissSatfinder] scan error:", e)
-            import traceback
-            traceback.print_exc()
-            # اگه خطا داد، Manual Scan معمولی باز کن
-            try:
-                from Screens.ScanSetup import ScanSetup
-                self.session.open(ScanSetup)
-            except:
-                pass
 
     def close_screen(self):
         """توقف Timer و بستن"""
