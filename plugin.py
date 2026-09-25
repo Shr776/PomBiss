@@ -255,42 +255,34 @@ class PomBiss(Screen):
         self.download_feeds()
 
     def feedscanall(self):
-        """Open custom PomBiss Signal Finder with current feed tuned"""
-        if not self.allfeeds:
-            return
-
-        # پارس فید فعلی
-        line = self.allfeeds[self.feedindex]
-        parts = [p.strip() for p in line.split("=")]
-        freq_parts = parts[0].split()
-
-        if len(freq_parts) < 4:
-            self.session.open(
-                MessageBox,
-                _("Invalid feed format"),
-                MessageBox.TYPE_ERROR,
-                timeout=5
-            )
-            return
-
-        feed_params = {
-            "sat":  freq_parts[0],
-            "freq": freq_parts[1],
-            "pol":  freq_parts[2],
-            "sr":   freq_parts[3],
-        }
-
-        try:
-            from .PomBissSatfinder import PomBissSatfinder
-            self.session.open(PomBissSatfinder, feed_params)
-        except Exception as e:
-            print("[PomBiss] feedscanall error:", e)
-            self.session.open(
-                MessageBox,
-                _("Error opening Signal Finder: %s") % str(e)[:80],
-                MessageBox.TYPE_ERROR,
-                timeout=10
-            )
+        """Open OpenBh's native Satfinder"""
+    try:
+        from Plugins.SystemPlugins.Satfinder.plugin import SatfinderExtra
+        self.session.open(SatfinderExtra)
+        return
+    except Exception as e:
+        pass
+    
+    try:
+        from Plugins.SystemPlugins.Satfinder.plugin import SatfinderMain
+        SatfinderMain(self.session)
+        return
+    except Exception as e:
+        pass
+    
+    try:
+        from Plugins.SystemPlugins.Satfinder.plugin import Satfinder
+        self.session.open(Satfinder)
+        return
+    except Exception as e:
+        pass
+    
+    self.session.open(
+        MessageBox,
+        _("Satfinder not found"),
+        MessageBox.TYPE_ERROR,
+        timeout=10
+    )
 
     def plconf(self):
         self.session.open(
