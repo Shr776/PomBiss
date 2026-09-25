@@ -79,6 +79,11 @@ class PomBiss(Screen):
     <widget name="line_prev_bot" position="200,250" size="500,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
+    <!-- ============ شماره فید (وسط Prev و Next) ============ -->
+    <widget name="feed_counter" position="760,185" size="400,60"
+            font="Regular;36" transparent="1" foregroundColor="#ffff00"
+            halign="center" valign="center" />
+
     <!-- ============ Next - آبی نئون ============ -->
     <widget name="line_next_top" position="1220,180" size="500,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
@@ -200,9 +205,10 @@ class PomBiss(Screen):
         # عنوان بالا
         self["title"] = Label("PomBiss")
 
-        # Prev/Next
+        # Prev/Next و شماره فید
         self["prev_text"] = Label("<<  Prev.")
         self["next_text"] = Label("Next  >>")
+        self["feed_counter"] = Label("")
 
         # اطلاعات فید
         self["label_category"] = Label("")
@@ -271,6 +277,9 @@ class PomBiss(Screen):
         self["label_frequency"].setText("Frequency: %s %s %s" % (freq, pol, sr))
         self["label_id"].setText("ID: %s" % feed_id)
         self["label_cw"].setText("CW: %s" % cw_key)
+
+        # شماره فید
+        self["feed_counter"].setText("[%d/%d]" % (self.feedindex + 1, len(self.allfeeds)))
 
     def kyleft(self):
         if not self.allfeeds:
