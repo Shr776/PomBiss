@@ -38,6 +38,33 @@ plugin_dir = resolveFilename(SCOPE_PLUGINS, "Extensions/PomBiss")
 # آدرس فایل feeds.txt روی GitHub
 FEEDS_URL = "https://raw.githubusercontent.com/Shr776/PomBissFeeds/main/feeds.txt"
 
+# ============================================================
+# CONFIG
+# ============================================================
+
+from Components.config import config, ConfigSubsection, ConfigInteger, ConfigSelection
+from Components.NimManager import nimmanager
+
+# ساخت ConfigSection برای PomBiss
+config.plugins.PomBiss = ConfigSubsection()
+config.plugins.PomBiss.feedfreq = ConfigInteger(default=11020, limits=(0, 13000))
+config.plugins.PomBiss.feedsr = ConfigInteger(default=7200, limits=(0, 100000))
+config.plugins.PomBiss.feedpol = ConfigInteger(default=1, limits=(0, 1))
+config.plugins.PomBiss.feedpos = ConfigInteger(default=130, limits=(0, 3600))
+
+# Nim choices
+_nimchoices = []
+for slot in nimmanager.nim_slots:
+    if slot.isCompatible('DVB-S'):
+        _nimchoices.append((str(slot.slot), "Tuner %d" % slot.slot))
+if not _nimchoices:
+    _nimchoices = [("0", "Tuner 0")]
+
+config.plugins.PomBiss.nimnum = ConfigSelection(
+    default=_nimchoices[0][0],
+    choices=_nimchoices
+)
+
 # چک کردن FULLHD بودن رسیور
 FULLHD = False
 if getDesktop(0).size().width() > 1800:
