@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 PomBiss Plugin for Enigma2
-Sports Feed Viewer - Neon Theme
+Sports Feed Viewer - Neon Boxed Theme
 """
 
 from __future__ import print_function
@@ -53,86 +53,86 @@ if getDesktop(0).size().width() > 1800:
 
 
 # ============================================================
-# MAIN SCREEN - POMBISS (NEON THEME)
+# MAIN SCREEN - POMBISS (NEON BOXED THEME)
 # ============================================================
 
 class PomBiss(Screen):
-    """صفحه اصلی پلاگین نمایش فیدها - تم نئون"""
+    """صفحه اصلی پلاگین نمایش فیدها - تم کادری نئون"""
 
     skinL = '''
 <screen name="PomBiss" position="center,center" size="1920,1080" title="PomBiss" flags="wfNoBorder" backgroundColor="#0a0a1a">
 
-    <!-- ============ عنوان بالا PomBiss ============ -->
-    <ePixmap position="660,30" size="600,4" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
-    <widget name="title" position="660,50" size="600,70"
-            font="Regular;52" transparent="1" foregroundColor="#00ffff"
+    <!-- ============ عنوان PomBiss ============ -->
+    <ePixmap position="560,50" size="800,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+    <widget name="title" position="560,65" size="800,60"
+            font="Regular;44" transparent="1" foregroundColor="#00ffff"
             halign="center" valign="center" zPosition="3"/>
-    <ePixmap position="660,130" size="600,4" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+    <ePixmap position="560,135" size="800,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
 
-    <!-- ============ کادر Prev/Next ============ -->
-    <ePixmap position="160,180" size="1600,4" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
-    <widget name="prev_text" position="220,200" size="400,60"
+    <!-- ============ Prev / Next ============ -->
+    <ePixmap position="160,180" size="1600,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+    <widget name="prev_text" position="220,195" size="400,60"
+            font="Regular;42" transparent="1" foregroundColor="#ff00ff"
+            halign="center" valign="center" zPosition="3"/>
+    <widget name="arrow_left" position="500,195" size="100,60"
             font="Regular;44" transparent="1" foregroundColor="#ff00ff"
             halign="center" valign="center" zPosition="3"/>
-    <widget name="next_text" position="1300,200" size="400,60"
+    <widget name="arrow_right" position="1320,195" size="100,60"
             font="Regular;44" transparent="1" foregroundColor="#ff00ff"
             halign="center" valign="center" zPosition="3"/>
-    <widget name="arrow_left" position="580,200" size="100,60"
-            font="Regular;48" transparent="1" foregroundColor="#ff00ff"
+    <widget name="next_text" position="1300,195" size="400,60"
+            font="Regular;42" transparent="1" foregroundColor="#ff00ff"
             halign="center" valign="center" zPosition="3"/>
-    <widget name="arrow_right" position="1240,200" size="100,60"
-            font="Regular;48" transparent="1" foregroundColor="#ff00ff"
-            halign="center" valign="center" zPosition="3"/>
-    <ePixmap position="160,270" size="1600,4" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+    <ePixmap position="160,265" size="1600,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
 
-    <!-- ============ کادر عنوان فید (دسته‌بندی) ============ -->
-    <ePixmap position="460,320" size="1000,4" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
-    <widget name="label_category" position="460,340" size="1000,70"
+    <!-- ============ کادر ۱: عنوان/دسته ============ -->
+    <ePixmap position="460,320" size="1000,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+    <widget name="label_category" position="460,335" size="1000,65"
+            font="Regular;32" transparent="1" foregroundColor="#ffffff"
+            halign="center" valign="center" zPosition="3"/>
+    <ePixmap position="460,410" size="1000,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+
+    <!-- ============ کادر ۲: ماهواره ============ -->
+    <ePixmap position="460,460" size="1000,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+    <widget name="label_satellite" position="460,475" size="1000,65"
             font="Regular;34" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" zPosition="3"/>
-    <ePixmap position="460,420" size="1000,4" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+    <ePixmap position="460,550" size="1000,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
 
-    <!-- ============ کادر ماهواره ============ -->
-    <ePixmap position="460,460" size="1000,4" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
-    <widget name="label_satellite" position="460,480" size="1000,70"
-            font="Regular;36" transparent="1" foregroundColor="#ffffff"
+    <!-- ============ کادر ۳: فرکانس ============ -->
+    <ePixmap position="460,600" size="1000,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+    <widget name="label_frequency" position="460,615" size="1000,65"
+            font="Regular;32" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" zPosition="3"/>
-    <ePixmap position="460,560" size="1000,4" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+    <ePixmap position="460,690" size="1000,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
 
-    <!-- ============ کادر فرکانس ============ -->
-    <ePixmap position="460,600" size="1000,4" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
-    <widget name="label_frequency" position="460,620" size="1000,70"
+    <!-- ============ کادر ۴: ID ============ -->
+    <ePixmap position="460,740" size="1000,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+    <widget name="label_id" position="460,755" size="1000,65"
             font="Regular;34" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" zPosition="3"/>
-    <ePixmap position="460,700" size="1000,4" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+    <ePixmap position="460,830" size="1000,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
 
-    <!-- ============ کادر ID ============ -->
-    <ePixmap position="460,740" size="1000,4" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
-    <widget name="label_id" position="460,760" size="1000,70"
-            font="Regular;36" transparent="1" foregroundColor="#ffffff"
+    <!-- ============ کادر ۵: CW Key ============ -->
+    <ePixmap position="460,880" size="1000,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+    <widget name="label_cw" position="460,895" size="1000,70"
+            font="Regular;36" transparent="1" foregroundColor="#00ff00"
             halign="center" valign="center" zPosition="3"/>
-    <ePixmap position="460,840" size="1000,4" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
-
-    <!-- ============ کادر CW (مهم‌ترین) ============ -->
-    <ePixmap position="460,880" size="1000,4" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
-    <widget name="label_cw" position="460,900" size="1000,80"
-            font="Regular;38" transparent="1" foregroundColor="#00ff00"
-            halign="center" valign="center" zPosition="3"/>
-    <ePixmap position="460,990" size="1000,4" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+    <ePixmap position="460,975" size="1000,3" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
 
     <!-- ============ دکمه‌های رنگی پایین ============ -->
-    <ePixmap position="760,1010" size="120,50" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
-    <widget name="key_red" position="760,1010" size="120,50"
+    <ePixmap position="760,1010" size="130,50" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_red.png" alphatest="on" />
+    <widget name="key_red" position="760,1010" size="130,50"
             font="Regular;22" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" zPosition="3"/>
 
-    <ePixmap position="900,1010" size="120,50" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_green.png" alphatest="on" />
-    <widget name="key_green" position="900,1010" size="120,50"
+    <ePixmap position="900,1010" size="130,50" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_green.png" alphatest="on" />
+    <widget name="key_green" position="900,1010" size="130,50"
             font="Regular;22" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" zPosition="3"/>
 
-    <ePixmap position="1040,1010" size="120,50" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_yellow.png" alphatest="on" />
-    <widget name="key_yellow" position="1040,1010" size="120,50"
+    <ePixmap position="1040,1010" size="130,50" zPosition="1" pixmap="''' + plugin_dir + '''/picon/bar_yellow.png" alphatest="on" />
+    <widget name="key_yellow" position="1040,1010" size="130,50"
             font="Regular;22" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" zPosition="3"/>
 
@@ -164,9 +164,9 @@ class PomBiss(Screen):
         )
 
         # عنوان بالا
-        self["title"] = Label("📡 PomBiss Feed Finder 📡")
+        self["title"] = Label("📡 PomBiss 📡")
 
-        # Prev/Next و فلش‌ها
+        # Prev/Next
         self["prev_text"] = Label("Prev.")
         self["next_text"] = Label("Next")
         self["arrow_left"] = Label("◄")
