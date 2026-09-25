@@ -223,6 +223,13 @@ class PomBissSatfinder(Screen):
                     log_debug("Got frontend from nimmanager.getNim")
                 except Exception as e:
                     log_debug("nimmanager.getNim error: %s" % str(e))
+            # روش ۴: از nimmanager.getFrontend
+            if frontend is None:
+                try:
+                    frontend = nimmanager.getFrontend(nim_slot)
+                    log_debug("Got frontend from nimmanager.getFrontend")
+                except Exception as e:
+                    log_debug("getFrontend error: %s" % str(e))
 
             # روش ۳: از nimmanager.getNimFrontend
             if frontend is None:
