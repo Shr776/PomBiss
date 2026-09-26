@@ -49,7 +49,7 @@ config.plugins.PomBiss.nimnum = ConfigSelection(
 FULLHD = False
 if getDesktop(0).size().width() > 1800:
     FULLHD = True
-    
+
 
 # ============================================================
 # SCREEN 1 - POMBISS LIST (صفحه لیست فیدها)
@@ -78,6 +78,28 @@ class PomBissList(Screen):
             halign="center" valign="center" />
     <widget name="line_list_bot" position="50,185" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
+
+    <!-- ============ پس‌زمینه خطوط (10 خط) ============ -->
+    <widget name="bg_1" position="60,195" size="770,60"
+            font="Regular;1" transparent="0" backgroundColor="#0a0a1a" />
+    <widget name="bg_2" position="60,255" size="770,60"
+            font="Regular;1" transparent="0" backgroundColor="#0a0a1a" />
+    <widget name="bg_3" position="60,315" size="770,60"
+            font="Regular;1" transparent="0" backgroundColor="#0a0a1a" />
+    <widget name="bg_4" position="60,375" size="770,60"
+            font="Regular;1" transparent="0" backgroundColor="#0a0a1a" />
+    <widget name="bg_5" position="60,435" size="770,60"
+            font="Regular;1" transparent="0" backgroundColor="#0a0a1a" />
+    <widget name="bg_6" position="60,495" size="770,60"
+            font="Regular;1" transparent="0" backgroundColor="#0a0a1a" />
+    <widget name="bg_7" position="60,555" size="770,60"
+            font="Regular;1" transparent="0" backgroundColor="#0a0a1a" />
+    <widget name="bg_8" position="60,615" size="770,60"
+            font="Regular;1" transparent="0" backgroundColor="#0a0a1a" />
+    <widget name="bg_9" position="60,675" size="770,60"
+            font="Regular;1" transparent="0" backgroundColor="#0a0a1a" />
+    <widget name="bg_10" position="60,735" size="770,60"
+            font="Regular;1" transparent="0" backgroundColor="#0a0a1a" />
 
     <!-- ============ 10 خط لیست - هر خط 4 Label ============ -->
 
@@ -221,12 +243,6 @@ class PomBissList(Screen):
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
-    <!-- ============ دو خط زرد انتخاب‌شده ============ -->
-    <widget name="sel_line_top" position="60,200" size="770,3"
-            font="Regular;1" transparent="0" backgroundColor="#ffff00" />
-    <widget name="sel_line_bot" position="60,255" size="770,3"
-            font="Regular;1" transparent="0" backgroundColor="#ffff00" />
-
     <!-- ============ شماره صفحه ============ -->
     <widget name="line_page_top" position="50,820" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
@@ -236,48 +252,48 @@ class PomBissList(Screen):
     <widget name="line_page_bot" position="50,880" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
-    <!-- ============ کادر جزئیات (راست) ============ -->
-    <widget name="line_cat_top" position="860,180" size="1010,3"
+    <!-- ============ کادر جزئیات (راست) - وسط‌چین عمودی ============ -->
+    <widget name="line_cat_top" position="860,280" size="1010,3"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
-    <widget name="label_category" position="860,185" size="1010,90"
+    <widget name="label_category" position="860,285" size="1010,90"
             font="Regular;22" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" />
-    <widget name="line_cat_bot" position="860,280" size="1010,3"
+    <widget name="line_cat_bot" position="860,380" size="1010,3"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
 
-    <widget name="line_sat_top" position="960,300" size="810,3"
+    <widget name="line_sat_top" position="960,400" size="810,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
-    <widget name="label_satellite" position="960,305" size="810,55"
+    <widget name="label_satellite" position="960,405" size="810,55"
             font="Regular;28" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" />
-    <widget name="line_sat_bot" position="960,365" size="810,3"
+    <widget name="line_sat_bot" position="960,465" size="810,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
-    <widget name="line_freq_top" position="910,385" size="910,3"
+    <widget name="line_freq_top" position="910,485" size="910,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
-    <widget name="label_frequency" position="910,390" size="910,55"
+    <widget name="label_frequency" position="910,490" size="910,55"
             font="Regular;26" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" />
-    <widget name="line_freq_bot" position="910,450" size="910,3"
+    <widget name="line_freq_bot" position="910,550" size="910,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
-    <widget name="line_id_top" position="910,470" size="910,3"
+    <widget name="line_id_top" position="910,570" size="910,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
-    <widget name="label_id" position="910,475" size="910,55"
+    <widget name="label_id" position="910,575" size="910,55"
             font="Regular;28" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" />
-    <widget name="line_id_bot" position="910,535" size="910,3"
+    <widget name="line_id_bot" position="910,635" size="910,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
-    <widget name="line_cw_top" position="860,555" size="1010,3"
+    <widget name="line_cw_top" position="860,655" size="1010,3"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
-    <widget name="label_cw" position="860,560" size="1010,60"
+    <widget name="label_cw" position="860,660" size="1010,60"
             font="Regular;32" transparent="1" foregroundColor="#00ff00"
             halign="center" valign="center" />
-    <widget name="line_cw_bot" position="860,625" size="1010,3"
+    <widget name="line_cw_bot" position="860,725" size="1010,3"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
 
-    <widget name="label_datetime" position="860,640" size="1010,40"
+    <widget name="label_datetime" position="860,740" size="1010,40"
             font="Regular;20" transparent="1" foregroundColor="#00ffff"
             halign="center" valign="center" />
 
@@ -339,9 +355,12 @@ class PomBissList(Screen):
                      "line_sat_top", "line_sat_bot",
                      "line_freq_top", "line_freq_bot",
                      "line_id_top", "line_id_bot",
-                     "line_cw_top", "line_cw_bot",
-                     "sel_line_top", "sel_line_bot"]:
+                     "line_cw_top", "line_cw_bot"]:
             self[line] = Label("")
+
+        # پس‌زمینه‌ها
+        for i in range(1, 11):
+            self["bg_%d" % i] = Label("")
 
         # عنوان‌ها
         self["title"] = Label("PomBiss")
@@ -422,6 +441,13 @@ class PomBissList(Screen):
 
         self["page_counter"].setText("[%d/%d]" % (page_num, total_pages))
 
+        # ریست پس‌زمینه‌ها به مشکی
+        for i in range(1, 11):
+            try:
+                self["bg_%d" % i].instance.setBackgroundColor(0x0a0a1a)
+            except:
+                pass
+
         for i in range(1, 11):
             feed_idx = self.page_start + i - 1
 
@@ -451,17 +477,11 @@ class PomBissList(Screen):
                 self["feed_freq_%d" % i].setText("")
                 self["feed_id_%d" % i].setText("")
 
-        # جابجایی خط زرد انتخاب‌شده
+        # رنگ پس‌زمینه خط انتخاب‌شده (زرد کم‌رنگ)
         row_in_page = self.current_index - self.page_start
         if 0 <= row_in_page < 10:
-            y_top = 200 + (row_in_page * 60)
-            y_bot = y_top + 55
-
             try:
-                self["sel_line_top"].instance.setPosition(60, y_top)
-                self["sel_line_top"].instance.resize(770, 3)
-                self["sel_line_bot"].instance.setPosition(60, y_bot)
-                self["sel_line_bot"].instance.resize(770, 3)
+                self["bg_%d" % (row_in_page + 1)].instance.setBackgroundColor(0x444400)
             except:
                 pass
 
@@ -501,7 +521,6 @@ class PomBissList(Screen):
         if self.current_index > 0:
             self.current_index -= 1
 
-            # اگه از صفحه خارج شد
             if self.current_index < self.page_start:
                 self.page_start -= self.feeds_per_page
 
@@ -512,7 +531,6 @@ class PomBissList(Screen):
         if self.current_index < len(self.allfeeds) - 1:
             self.current_index += 1
 
-            # اگه از صفحه خارج شد
             if self.current_index >= self.page_start + self.feeds_per_page:
                 self.page_start += self.feeds_per_page
 
@@ -567,7 +585,7 @@ class PomBissList(Screen):
 
     def cancel(self):
         self.close()
-        
+
 
 # ============================================================
 # MAIN FUNCTION
@@ -590,4 +608,3 @@ def Plugins(**kwargs):
         icon="FSSLOGO.png",
         fnc=main
     )
-    
