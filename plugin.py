@@ -548,6 +548,79 @@ class PomBissList(Screen):
         self.download_feeds()
 
     def feedscanall(self):
+        """باز کردن Satfinder با فرکانس فید فعلی"""
+        if not self.allfeeds:
+            return
+
+        try:
+            # پارس فید فعلی
+            line = self.allfeeds[self.current_index]
+            parts = [p.strip() for p in line.split("=")]
+            freq_parts = parts[0].split()
+
+            if len(freq_parts) < 4:
+                return
+
+            sat_pos = freq_parts[0]
+            freq = int(freq_parts[1])
+            pol = freq_parts[2].upper()
+            sr = int(freq_parts[3])
+
+            # تبدیل موقعیت به عدد
+            try:
+                deg = float(sat_pos.replace("E", "").replace("W", "").strip())
+                if "W" in sat_pos.upper():
+                    deg = -deg
+                orbital_pos = int(deg * 10)
+            except:
+                orbital_pos = 130
+
+            # === تنظیم Tuner قبل از باز کردن Satfinder ===
+            from enigma import eDVBFrontendParametersSatellite, eDVBResourceManager
+            from Components.NimManager import nimmanager
+
+            # ۱. گرفتن resource manager
+            rm = eDVBResourceManager.getInstance()
+
+            # ۲. گرفتن nim slot
+            nim_slot = int(config.plugins.PomBiss.nimnum.value)
+
+            # ۳. گرفتن frontend
+            frontend = rm.getFrontend(nim_slot, 0)
+
+            if frontend is None:
+                # اگه نشد، از nimmanager
+                nim = nimmanager.getNim(nim_slot)
+                frontend = nimmanager.getFrontend(nim_slot)
+
+            if frontend is not None:
+                # ۴. ساخت transponder
+                tp = eDVBFrontendParametersSatellite()
+                tp.frequency = freq * 1000
+                tp.symbol_rate = sr * 1000
+                tp.polarization = (
+                    eDVBFrontendParametersSatellite.Polarisation_Horizontal
+                    if pol == "H"
+                    else eDVBFrontendParametersSatellite.Polarisation_Vertical
+                )
+                tp.fec = eDVBFrontendParametersSatellite.FEC_Auto
+                tp.inversion = eDVBFrontendParametersSatellite.Inversion_Unknown
+                tp.system = eDVBFrontendParametersSatellite.System_DVB_S2
+                tp.modulation = eDVBFrontendParametersSatellite.Modulation_QPSK
+                tp.orbital_position = orbital_pos
+
+                # ۵. تنظیم Tuner
+                try:
+                    frontend.setFrontend(tp)
+                except:
+                    try:
+                        frontend.tune(tp)
+                    except:
+                        pass
+        except Exception as e:
+            print("[PomBiss] Satfinder tune error:", e)
+
+        # === باز کردن Satfinder ===
         try:
             from Plugins.SystemPlugins.Satfinder.plugin import SatfinderExtra
             self.session.open(SatfinderExtra)
