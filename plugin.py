@@ -548,79 +548,23 @@ class PomBissList(Screen):
         self.download_feeds()
 
     def feedscanall(self):
-        """باز کردن Satfinder با فرکانس فید فعلی"""
+        """باز کردن Scan با فرکانس فید فعلی"""
         if not self.allfeeds:
             return
 
-        # پارس فید فعلی
-        line = self.allfeeds[self.current_index]
-        parts = [p.strip() for p in line.split("=")]
-        freq_parts = parts[0].split()
-
-        if len(freq_parts) < 4:
-            return
-
-        sat_pos = freq_parts[0]
-        freq = int(freq_parts[1])
-        pol = freq_parts[2].upper()
-        sr = int(freq_parts[3])
-
-        # ذخیره برای استفاده بعدی
-        self.pending_tp = (sat_pos, freq, pol, sr)
-
-        # === باز کردن Satfinder ===
         try:
-            from Plugins.SystemPlugins.Satfinder.plugin import SatfinderExtra
-            self.session.open(SatfinderExtra)
-            # بعد از باز شدن، یه Timer برای تنظیم Tuner
-            self.start_retune_timer()
-            return
-        except Exception:
-            pass
+            # پارس فید فعلی
+            line = self.allfeeds[self.current_index]
+            parts = [p.strip() for p in line.split("=")]
+            freq_parts = parts[0].split()
 
-        try:
-            from Plugins.SystemPlugins.Satfinder.plugin import SatfinderMain
-            SatfinderMain(self.session)
-            self.start_retune_timer()
-            return
-        except Exception:
-            pass
-
-        try:
-            from Plugins.SystemPlugins.Satfinder.plugin import Satfinder
-            self.session.open(Satfinder)
-            self.start_retune_timer()
-            return
-        except Exception:
-            pass
-
-        self.session.open(
-            MessageBox,
-            _("Satfinder not found"),
-            MessageBox.TYPE_ERROR,
-            timeout=10
-        )
-
-    def start_retune_timer(self):
-        """شروع تایمر برای تنظیم Tuner بعد از باز شدن Satfinder"""
-        try:
-            from enigma import eTimer
-            self.retune_timer = eTimer()
-            try:
-                self.retune_timer.callback.append(self.do_retune)
-            except:
-                self.retune_timer.timeout.connect(self.do_retune)
-            self.retune_timer.start(500, True)  # 500ms یه بار
-        except Exception as e:
-            print("[PomBiss] retune timer error:", e)
-
-    def do_retune(self):
-        """تنظیم Tuner روی فرکانس فید"""
-        try:
-            if not hasattr(self, 'pending_tp'):
+            if len(freq_parts) < 4:
                 return
 
-            sat_pos, freq, pol, sr = self.pending_tp
+            sat_pos = freq_parts[0]
+            freq = int(freq_parts[1])
+            pol = freq_parts[2].upper()
+            sr = int(freq_parts[3])
 
             # تبدیل موقعیت
             try:
@@ -632,30 +576,8 @@ class PomBissList(Screen):
                 orbital_pos = 130
 
             # ساخت transponder
-            from enigma import eDVBFrontendParametersSatellite, eDVBResourceManager
-            from Components.NimManager import nimmanager
+            from enigma import eDVBFrontendParametersSatellite
 
-            # روش ۱: از nimmanager
-            nim_slot = int(config.plugins.PomBiss.nimnum.value)
-            frontend = None
-
-            try:
-                rm = eDVBResourceManager.getInstance()
-                frontend = rm.getFrontend(nim_slot, 0)
-            except:
-                pass
-
-            if frontend is None:
-                try:
-                    frontend = nimmanager.getFrontend(nim_slot)
-                except:
-                    pass
-
-            if frontend is None:
-                print("[PomBiss] Cannot get frontend")
-                return
-
-            # ساخت tp
             tp = eDVBFrontendParametersSatellite()
             tp.frequency = freq * 1000
             tp.symbol_rate = sr * 1000
@@ -670,20 +592,39 @@ class PomBissList(Screen):
             tp.modulation = eDVBFrontendParametersSatellite.Modulation_QPSK
             tp.orbital_position = orbital_pos
 
-            # تنظیم Tuner
+            # باز کردن ScanSetup با transponder
             try:
-                frontend.setFrontend(tp)
-                print("[PomBiss] Frontend set to %d %s %d" % (freq, pol, sr))
-            except Exception as e:
-                print("[PomBiss] setFrontend error:", e)
+                from Screens.ScanSetup import ScanSetup
+                self.session.open(ScanSetup, tp)
+                return
+            except TypeError:
+                # اگه پارامتر قبول نکرد، بدون پارامتر
                 try:
-                    frontend.tune(tp)
-                    print("[PomBiss] Frontend tuned")
-                except Exception as e2:
-                    print("[PomBiss] tune error:", e2)
+                    from Screens.ScanSetup import ScanSetup
+                    self.session.open(ScanSetup)
+                    return
+                except Exception:
+                    pass
+            except Exception as e:
+                print("[PomBiss] ScanSetup error:", e)
 
         except Exception as e:
-            print("[PomBiss] do_retune error:", e)
+            print("[PomBiss] feedscanall error:", e)
+
+        # fallback به Satfinder
+        try:
+            from Plugins.SystemPlugins.Satfinder.plugin import SatfinderExtra
+            self.session.open(SatfinderExtra)
+            return
+        except Exception:
+            pass
+
+        self.session.open(
+            MessageBox,
+            _("Satfinder not found"),
+            MessageBox.TYPE_ERROR,
+            timeout=10
+        )
 
     def cancel(self):
         self.close()
