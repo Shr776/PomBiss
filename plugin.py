@@ -50,6 +50,14 @@ config.plugins.PomBiss.nimnum = ConfigSelection(
 FULLHD = False
 if getDesktop(0).size().width() > 1800:
     FULLHD = True
+    
+def log_debug(msg):
+    """نوشتن لاگ توی فایل"""
+    try:
+        with open("/tmp/PomBissSatfinder.log", "a") as f:
+            f.write("[PomBiss] %s\n" % msg)
+    except:
+        pass
 
 
 def log_debug(msg):
