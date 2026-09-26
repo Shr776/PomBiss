@@ -104,139 +104,135 @@ class PomBissList(Screen):
     <widget name="line_list_bot" position="50,185" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
-    <!-- ============ نوار عمودی انتخاب‌شده ============ -->
-    <widget name="sel_bar" position="50,200" size="6,55"
-            font="Regular;1" transparent="0" backgroundColor="#00ffff" />
-
     <!-- ============ 10 خط لیست ============ -->
 
-    <widget name="feed_num_1" position="65,200" size="120,55"
+    <widget name="feed_num_1" position="55,200" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
             halign="left" valign="center" />
-    <widget name="feed_sat_1" position="190,200" size="300,55"
+    <widget name="feed_sat_1" position="180,200" size="300,55"
             font="Regular;22" transparent="1" foregroundColor="#00ff88"
             halign="left" valign="center" />
-    <widget name="feed_freq_1" position="490,200" size="200,55"
+    <widget name="feed_freq_1" position="480,200" size="200,55"
             font="Regular;22" transparent="1" foregroundColor="#00aaff"
             halign="left" valign="center" />
-    <widget name="feed_id_1" position="690,200" size="150,55"
+    <widget name="feed_id_1" position="680,200" size="160,55"
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
-    <widget name="feed_num_2" position="65,260" size="120,55"
+    <widget name="feed_num_2" position="55,260" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
             halign="left" valign="center" />
-    <widget name="feed_sat_2" position="190,260" size="300,55"
+    <widget name="feed_sat_2" position="180,260" size="300,55"
             font="Regular;22" transparent="1" foregroundColor="#00ff88"
             halign="left" valign="center" />
-    <widget name="feed_freq_2" position="490,260" size="200,55"
+    <widget name="feed_freq_2" position="480,260" size="200,55"
             font="Regular;22" transparent="1" foregroundColor="#00aaff"
             halign="left" valign="center" />
-    <widget name="feed_id_2" position="690,260" size="150,55"
+    <widget name="feed_id_2" position="680,260" size="160,55"
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
-    <widget name="feed_num_3" position="65,320" size="120,55"
+    <widget name="feed_num_3" position="55,320" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
             halign="left" valign="center" />
-    <widget name="feed_sat_3" position="190,320" size="300,55"
+    <widget name="feed_sat_3" position="180,320" size="300,55"
             font="Regular;22" transparent="1" foregroundColor="#00ff88"
             halign="left" valign="center" />
-    <widget name="feed_freq_3" position="490,320" size="200,55"
+    <widget name="feed_freq_3" position="480,320" size="200,55"
             font="Regular;22" transparent="1" foregroundColor="#00aaff"
             halign="left" valign="center" />
-    <widget name="feed_id_3" position="690,320" size="150,55"
+    <widget name="feed_id_3" position="680,320" size="160,55"
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
-    <widget name="feed_num_4" position="65,380" size="120,55"
+    <widget name="feed_num_4" position="55,380" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
             halign="left" valign="center" />
-    <widget name="feed_sat_4" position="190,380" size="300,55"
+    <widget name="feed_sat_4" position="180,380" size="300,55"
             font="Regular;22" transparent="1" foregroundColor="#00ff88"
             halign="left" valign="center" />
-    <widget name="feed_freq_4" position="490,380" size="200,55"
+    <widget name="feed_freq_4" position="480,380" size="200,55"
             font="Regular;22" transparent="1" foregroundColor="#00aaff"
             halign="left" valign="center" />
-    <widget name="feed_id_4" position="690,380" size="150,55"
+    <widget name="feed_id_4" position="680,380" size="160,55"
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
-    <widget name="feed_num_5" position="65,440" size="120,55"
+    <widget name="feed_num_5" position="55,440" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
             halign="left" valign="center" />
-    <widget name="feed_sat_5" position="190,440" size="300,55"
+    <widget name="feed_sat_5" position="180,440" size="300,55"
             font="Regular;22" transparent="1" foregroundColor="#00ff88"
             halign="left" valign="center" />
-    <widget name="feed_freq_5" position="490,440" size="200,55"
+    <widget name="feed_freq_5" position="480,440" size="200,55"
             font="Regular;22" transparent="1" foregroundColor="#00aaff"
             halign="left" valign="center" />
-    <widget name="feed_id_5" position="690,440" size="150,55"
+    <widget name="feed_id_5" position="680,440" size="160,55"
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
-    <widget name="feed_num_6" position="65,500" size="120,55"
+    <widget name="feed_num_6" position="55,500" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
             halign="left" valign="center" />
-    <widget name="feed_sat_6" position="190,500" size="300,55"
+    <widget name="feed_sat_6" position="180,500" size="300,55"
             font="Regular;22" transparent="1" foregroundColor="#00ff88"
             halign="left" valign="center" />
-    <widget name="feed_freq_6" position="490,500" size="200,55"
+    <widget name="feed_freq_6" position="480,500" size="200,55"
             font="Regular;22" transparent="1" foregroundColor="#00aaff"
             halign="left" valign="center" />
-    <widget name="feed_id_6" position="690,500" size="150,55"
+    <widget name="feed_id_6" position="680,500" size="160,55"
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
-    <widget name="feed_num_7" position="65,560" size="120,55"
+    <widget name="feed_num_7" position="55,560" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
             halign="left" valign="center" />
-    <widget name="feed_sat_7" position="190,560" size="300,55"
+    <widget name="feed_sat_7" position="180,560" size="300,55"
             font="Regular;22" transparent="1" foregroundColor="#00ff88"
             halign="left" valign="center" />
-    <widget name="feed_freq_7" position="490,560" size="200,55"
+    <widget name="feed_freq_7" position="480,560" size="200,55"
             font="Regular;22" transparent="1" foregroundColor="#00aaff"
             halign="left" valign="center" />
-    <widget name="feed_id_7" position="690,560" size="150,55"
+    <widget name="feed_id_7" position="680,560" size="160,55"
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
-    <widget name="feed_num_8" position="65,620" size="120,55"
+    <widget name="feed_num_8" position="55,620" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
             halign="left" valign="center" />
-    <widget name="feed_sat_8" position="190,620" size="300,55"
+    <widget name="feed_sat_8" position="180,620" size="300,55"
             font="Regular;22" transparent="1" foregroundColor="#00ff88"
             halign="left" valign="center" />
-    <widget name="feed_freq_8" position="490,620" size="200,55"
+    <widget name="feed_freq_8" position="480,620" size="200,55"
             font="Regular;22" transparent="1" foregroundColor="#00aaff"
             halign="left" valign="center" />
-    <widget name="feed_id_8" position="690,620" size="150,55"
+    <widget name="feed_id_8" position="680,620" size="160,55"
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
-    <widget name="feed_num_9" position="65,680" size="120,55"
+    <widget name="feed_num_9" position="55,680" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
             halign="left" valign="center" />
-    <widget name="feed_sat_9" position="190,680" size="300,55"
+    <widget name="feed_sat_9" position="180,680" size="300,55"
             font="Regular;22" transparent="1" foregroundColor="#00ff88"
             halign="left" valign="center" />
-    <widget name="feed_freq_9" position="490,680" size="200,55"
+    <widget name="feed_freq_9" position="480,680" size="200,55"
             font="Regular;22" transparent="1" foregroundColor="#00aaff"
             halign="left" valign="center" />
-    <widget name="feed_id_9" position="690,680" size="150,55"
+    <widget name="feed_id_9" position="680,680" size="160,55"
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
-    <widget name="feed_num_10" position="65,740" size="120,55"
+    <widget name="feed_num_10" position="55,740" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
             halign="left" valign="center" />
-    <widget name="feed_sat_10" position="190,740" size="300,55"
+    <widget name="feed_sat_10" position="180,740" size="300,55"
             font="Regular;22" transparent="1" foregroundColor="#00ff88"
             halign="left" valign="center" />
-    <widget name="feed_freq_10" position="490,740" size="200,55"
+    <widget name="feed_freq_10" position="480,740" size="200,55"
             font="Regular;22" transparent="1" foregroundColor="#00aaff"
             halign="left" valign="center" />
-    <widget name="feed_id_10" position="690,740" size="150,55"
+    <widget name="feed_id_10" position="680,740" size="160,55"
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
@@ -362,9 +358,6 @@ class PomBissList(Screen):
                      "line_cw_top", "line_cw_bot",
                      "line_brand_top", "line_brand_bot"]:
             self[line] = Label("")
-
-        # نوار عمودی انتخاب‌شده
-        self["sel_bar"] = Label("")
 
         self["title"] = Label("PomBiss")
         self["list_header"] = Label("FEED LIST")
@@ -504,22 +497,6 @@ class PomBissList(Screen):
                 self["feed_sat_%d" % i].setText("")
                 self["feed_freq_%d" % i].setText("")
                 self["feed_id_%d" % i].setText("")
-
-        # جابجایی نوار عمودی
-        row = self.current_index - self.page_start
-        if 0 <= row < 10:
-            y_pos = 200 + (row * 60)
-            try:
-                self["sel_bar"].instance.setPosition(50, y_pos)
-                self["sel_bar"].instance.resize(6, 55)
-                self["sel_bar"].show()
-            except:
-                pass
-        else:
-            try:
-                self["sel_bar"].hide()
-            except:
-                pass
 
     def update_details(self):
         """نمایش جزئیات فید انتخاب‌شده"""
