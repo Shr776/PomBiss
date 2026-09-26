@@ -96,7 +96,7 @@ class PomBiss(Screen):
     <widget name="line_next_bot" position="1220,250" size="500,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
-    <!-- ============ کادر ۱: دسته‌بندی - قرمز نئون (بزرگ‌تر) ============ -->
+    <!-- ============ کادر ۱: دسته‌بندی - قرمز نئون ============ -->
     <widget name="line_cat_top" position="460,300" size="1000,3"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
     <widget name="label_category" position="460,305" size="1000,110"
@@ -248,6 +248,16 @@ class PomBiss(Screen):
                 self["label_category"].setText(_("No feeds available"))
                 return
 
+            # مرتب‌سازی بر اساس تاریخ/ساعت (جدیدترین اول)
+            def get_datetime_key(line):
+                parts = line.split("=")
+                if len(parts) > 8:
+                    dt = parts[8].strip()
+                    return dt
+                return ""
+
+            lines.sort(key=get_datetime_key, reverse=True)
+
             self.allfeeds = lines
             self.feedindex = 0
             self.show_feed()
@@ -276,7 +286,6 @@ class PomBiss(Screen):
         sat_label = parts[3] if len(parts) > 3 else ""
         feed_id = parts[5] if len(parts) > 5 else ""
 
-        # بخش نهم: تاریخ و ساعت
         feed_datetime = parts[8] if len(parts) > 8 else ""
 
         self["label_category"].setText("# " + title)
@@ -285,7 +294,6 @@ class PomBiss(Screen):
         self["label_id"].setText("ID: %s" % feed_id)
         self["label_cw"].setText("CW: %s" % cw_key)
 
-        # شماره فید و تاریخ
         self["feed_counter"].setText("[%d/%d]" % (self.feedindex + 1, len(self.allfeeds)))
         self["feed_datetime"].setText(feed_datetime)
 
