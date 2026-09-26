@@ -50,7 +50,7 @@ config.plugins.PomBiss.nimnum = ConfigSelection(
 FULLHD = False
 if getDesktop(0).size().width() > 1800:
     FULLHD = True
-    
+
 # اصلاح موقعیت‌های ناقص
 POSITION_FIX = {
     "31": "Eutelsat 3C ( 3.1E )",
@@ -377,8 +377,6 @@ class PomBissList(Screen):
     def download_feeds(self):
         try:
             self["label_category"].setText(_("Downloading..."))
-
-            # تاریخ امروز
             self["today_date"].setText(time.strftime("%Y-%m-%d  %H:%M"))
 
             response = requests.get(FEEDS_URL, timeout=15)
@@ -438,6 +436,11 @@ class PomBissList(Screen):
                 sat_label = parts[3].strip() if len(parts) > 3 else ""
                 feed_id = parts[5].strip() if len(parts) > 5 else ""
 
+                # اصلاح موقعیت ناقص
+                if not sat_label or sat_label == "0":
+                    sat_pos = freq_parts[0] if len(freq_parts) > 0 else ""
+                    sat_label = POSITION_FIX.get(sat_pos, sat_label)
+
                 if feed_idx == self.current_index:
                     self["feed_num_%d" % i].setText("▶[%d]" % (feed_idx + 1))
                     self["feed_sat_%d" % i].setText(sat_label)
@@ -493,15 +496,12 @@ class PomBissList(Screen):
         title = parts[2] if len(parts) > 2 else ""
         sat_label = parts[3] if len(parts) > 3 else ""
         feed_id = parts[5] if len(parts) > 5 else ""
-        
+        feed_datetime = parts[8] if len(parts) > 8 else ""
+
+        # اصلاح موقعیت ناقص
         if not sat_label or sat_label == "0":
             sat_pos = freq_parts[0] if len(freq_parts) > 0 else ""
             sat_label = POSITION_FIX.get(sat_pos, sat_label)
-        
-        if not sat_label or sat_label == "0":
-           sat_pos = freq_parts[0] if len(freq_parts) > 0 else ""
-           sat_label = POSITION_FIX.get(sat_pos, sat_label)
-        feed_datetime = parts[8] if len(parts) > 8 else ""
 
         self["label_category"].setText("# " + title)
         self["label_satellite"].setText(sat_label)
@@ -548,12 +548,11 @@ class PomBissList(Screen):
         self.download_feeds()
 
     def feedscanall(self):
-        """باز کردن Satfinder و تنظیم Tuner"""
+        """باز کردن Satfinder با فرکانس فید"""
         if not self.allfeeds:
             return
 
         try:
-            # پارس فید فعلی
             line = self.allfeeds[self.current_index]
             parts = [p.strip() for p in line.split("=")]
             freq_parts = parts[0].split()
@@ -561,7 +560,6 @@ class PomBissList(Screen):
             if len(freq_parts) < 4:
                 return
 
-            # ذخیره برای retune
             self.pending_freq = int(freq_parts[1])
             self.pending_pol = freq_parts[2].upper()
             self.pending_sr = int(freq_parts[3])
@@ -576,7 +574,7 @@ class PomBissList(Screen):
                 self.pending_orb = 130
 
         except Exception as e:
-            print("[PomBiss] parse error:", e)
+            print("[PomBiss] parse error: %s" % str(e))
             return
 
         # باز کردن Satfinder
@@ -619,84 +617,58 @@ class PomBissList(Screen):
             self.retune_timer.callback.append(self.do_retune)
         except:
             self.retune_timer.timeout.connect(self.do_retune)
-        self.retune_timer.start(1500, True)  # ۱.۵ ثانیه بعد
+        self.retune_timer.start(2000, True)
 
     def do_retune(self):
-        """تلاش برای تنظیم Tuner با retuneSat"""
+        """تلاش برای تنظیم Tuner"""
         try:
-            # ساخت transponder
-            from enigma import eDVBFrontendParametersSatellite
+            print("[PomBiss] === do_retune START ===")
 
-            tp = eDVBFrontendParametersSatellite()
-            tp.frequency = self.pending_freq * 1000
-            tp.symbol_rate = self.pending_sr * 1000
-            tp.polarization = (
-                eDVBFrontendParametersSatellite.Polarisation_Horizontal
-                if self.pending_pol == "H"
-                else eDVBFrontendParametersSatellite.Polarisation_Vertical
-            )
-            tp.fec = eDVBFrontendParametersSatellite.FEC_Auto
-            tp.inversion = eDVBFrontendParametersSatellite.Inversion_Unknown
-            tp.system = eDVBFrontendParametersSatellite.System_DVB_S2
-            tp.modulation = eDVBFrontendParametersSatellite.Modulation_QPSK
-            tp.orbital_position = self.pending_orb
-
-            # تلاش برای گرفتن Satfinder فعلی
             current = self.session.current_dialog
-            if current:
-                print("[PomBiss] Current screen:", current)
+            print("[PomBiss] Current screen: %s" % str(current))
 
-                # اگه retuneSat داره
-                if hasattr(current, 'retuneSat'):
-                    try:
-                        current.retuneSat(tp)
-                        print("[PomBiss] retuneSat called")
-                        return
-                    except Exception as e:
-                        print("[PomBiss] retuneSat error:", e)
+            if current is None:
+                print("[PomBiss] No current screen")
+                return
 
-                # اگه retune داره
-                if hasattr(current, 'retune'):
-                    try:
-                        current.retune(tp)
-                        print("[PomBiss] retune called")
-                        return
-                    except Exception as e:
-                        print("[PomBiss] retune error:", e)
+            methods = [m for m in dir(current) if not m.startswith('_')]
+            print("[PomBiss] Methods: %s" % str(methods)[:500])
 
-            # fallback: از frontend مستقیم
-            from enigma import eDVBResourceManager
-            from Components.NimManager import nimmanager
-
-            nim_slot = int(config.plugins.PomBiss.nimnum.value)
-            frontend = None
-
-            try:
-                rm = eDVBResourceManager.getInstance()
-                frontend = rm.getFrontend(nim_slot, 0)
-            except:
-                pass
-
-            if frontend is None:
+            if hasattr(current, 'retuneSat'):
+                print("[PomBiss] Trying retuneSat...")
                 try:
-                    frontend = nimmanager.getFrontend(nim_slot)
-                except:
-                    pass
-
-            if frontend is not None:
-                try:
-                    frontend.setFrontend(tp)
-                    print("[PomBiss] Frontend set directly")
+                    current.retuneSat()
+                    print("[PomBiss] retuneSat() OK")
+                    return
                 except Exception as e:
-                    print("[PomBiss] setFrontend error:", e)
-                    try:
-                        frontend.tune(tp)
-                        print("[PomBiss] Frontend tuned")
-                    except Exception as e2:
-                        print("[PomBiss] tune error:", e2)
+                    print("[PomBiss] retuneSat() error: %s" % str(e))
+
+            if hasattr(current, 'retune'):
+                print("[PomBiss] Trying retune...")
+                try:
+                    current.retune()
+                    print("[PomBiss] retune() OK")
+                    return
+                except Exception as e:
+                    print("[PomBiss] retune() error: %s" % str(e))
+
+            if hasattr(current, 'keyGoScan'):
+                print("[PomBiss] Trying keyGoScan...")
+                try:
+                    current.keyGoScan()
+                    print("[PomBiss] keyGoScan() OK")
+                    return
+                except Exception as e:
+                    print("[PomBiss] keyGoScan() error: %s" % str(e))
+
+            for m in methods:
+                if 'tune' in m.lower() or 'retune' in m.lower() or 'scan' in m.lower():
+                    print("[PomBiss] Found method: %s" % m)
 
         except Exception as e:
-            print("[PomBiss] do_retune error:", e)
+            print("[PomBiss] do_retune error: %s" % str(e))
+            import traceback
+            traceback.print_exc()
 
     def cancel(self):
         self.close()
