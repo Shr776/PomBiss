@@ -50,14 +50,6 @@ config.plugins.PomBiss.nimnum = ConfigSelection(
 FULLHD = False
 if getDesktop(0).size().width() > 1800:
     FULLHD = True
-    
-def log_debug(msg):
-    """نوشتن لاگ توی فایل"""
-    try:
-        with open("/tmp/PomBissSatfinder.log", "a") as f:
-            f.write("[PomBiss] %s\n" % msg)
-    except:
-        pass
 
 
 def log_debug(msg):
@@ -107,7 +99,7 @@ class PomBissList(Screen):
     <widget name="line_list_bot" position="50,185" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
-    <!-- ============ 10 خط لیست - هر خط 4 Label ============ -->
+    <!-- ============ 10 خط لیست ============ -->
 
     <!-- خط 1 -->
     <widget name="feed_num_1" position="55,200" size="120,55"
@@ -593,12 +585,10 @@ class PomBissList(Screen):
                 clean = sat_pos.replace("E", "").replace("W", "").replace("°", "").strip()
                 log_debug("sat_pos clean: '%s'" % clean)
 
-                # چک: اگه عدد خالص بود (مثل 130 یا 216) → خودش موقعیته
                 if clean.isdigit() or (clean.startswith("-") and clean[1:].isdigit()):
                     self.pending_orb = int(clean)
                     log_debug("orb (pure number): %d" % self.pending_orb)
                 else:
-                    # فرمت 13.0E یا 13E
                     deg = float(clean)
                     if "W" in sat_pos.upper():
                         deg = -deg
@@ -663,50 +653,79 @@ class PomBissList(Screen):
         self.retune_timer.start(2000, True)
 
     def do_retune(self):
-        """تلاش برای تنظیم Tuner"""
+        """تنظیم Tuner"""
         try:
             log_debug("=== do_retune START ===")
 
-            current = self.session.current_dialog
-            log_debug("Current screen: %s" % str(current))
+            from enigma import eDVBFrontendParametersSatellite
+            from enigma import eDVBResourceManager
+            from Components.NimManager import nimmanager
 
-            if current is None:
-                log_debug("No current screen")
+            nim_slot = int(config.plugins.PomBiss.nimnum.value)
+            frontend = None
+
+            try:
+                rm = eDVBResourceManager.getInstance()
+                if rm:
+                    frontend = rm.getFrontend(nim_slot, 0)
+                    log_debug("Got frontend via rm.getFrontend")
+            except Exception as e:
+                log_debug("rm.getFrontend error: %s" % str(e))
+
+            if frontend is None:
+                try:
+                    frontend = nimmanager.getFrontend(nim_slot)
+                    log_debug("Got frontend via nimmanager.getFrontend")
+                except Exception as e:
+                    log_debug("nimmanager.getFrontend error: %s" % str(e))
+
+            if frontend is None:
+                log_debug("Frontend is None, fallback to retuneSat")
+                current = self.session.current_dialog
+                if current and hasattr(current, 'retuneSat'):
+                    try:
+                        current.retuneSat()
+                        log_debug("retuneSat() fallback OK")
+                    except:
+                        pass
                 return
 
-            methods = [m for m in dir(current) if not m.startswith('_')]
-            log_debug("Methods: %s" % str(methods)[:1000])
+            tp = eDVBFrontendParametersSatellite()
+            tp.frequency = self.pending_freq * 1000
+            tp.symbol_rate = self.pending_sr * 1000
+            tp.polarization = (
+                eDVBFrontendParametersSatellite.Polarisation_Horizontal
+                if self.pending_pol == "H"
+                else eDVBFrontendParametersSatellite.Polarisation_Vertical
+            )
+            tp.fec = eDVBFrontendParametersSatellite.FEC_Auto
+            tp.inversion = eDVBFrontendParametersSatellite.Inversion_Unknown
+            tp.system = eDVBFrontendParametersSatellite.System_DVB_S2
+            tp.modulation = eDVBFrontendParametersSatellite.Modulation_QPSK
+            tp.orbital_position = self.pending_orb
 
-            if hasattr(current, 'retuneSat'):
-                log_debug("Trying retuneSat...")
+            log_debug("Setting frontend: %d %s %d @ orb %d" % (
+                self.pending_freq, self.pending_pol,
+                self.pending_sr, self.pending_orb))
+
+            try:
+                frontend.setFrontend(tp)
+                log_debug("setFrontend OK")
+            except Exception as e:
+                log_debug("setFrontend error: %s" % str(e))
+                try:
+                    frontend.tune(tp)
+                    log_debug("tune OK")
+                except Exception as e2:
+                    log_debug("tune error: %s" % str(e2))
+
+            current = self.session.current_dialog
+            if current and hasattr(current, 'retuneSat'):
                 try:
                     current.retuneSat()
-                    log_debug("retuneSat() OK")
-                    return
+                    log_debug("retuneSat() after setFrontend OK")
                 except Exception as e:
                     log_debug("retuneSat() error: %s" % str(e))
-
-            if hasattr(current, 'retune'):
-                log_debug("Trying retune...")
-                try:
-                    current.retune()
-                    log_debug("retune() OK")
-                    return
-                except Exception as e:
-                    log_debug("retune() error: %s" % str(e))
-
-            if hasattr(current, 'keyGoScan'):
-                log_debug("Trying keyGoScan...")
-                try:
-                    current.keyGoScan()
-                    log_debug("keyGoScan() OK")
-                    return
-                except Exception as e:
-                    log_debug("keyGoScan() error: %s" % str(e))
-
-            for m in methods:
-                if 'tune' in m.lower() or 'scan' in m.lower():
-                    log_debug("Found method: %s" % m)
 
         except Exception as e:
             log_debug("do_retune error: %s" % str(e))
