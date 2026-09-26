@@ -17,7 +17,7 @@ from Screens.Screen import Screen
 from Screens.MessageBox import MessageBox
 from Components.Label import Label
 from Components.ActionMap import ActionMap
-from enigma import getDesktop
+from enigma import getDesktop, eTimer
 from Tools.Directories import resolveFilename, SCOPE_PLUGINS
 
 import requests
@@ -237,6 +237,12 @@ class PomBissList(Screen):
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
+    <!-- ============ نور متحرک برای فید انتخاب‌شده ============ -->
+    <widget name="glow_left" position="50,200" size="8,55"
+            font="Regular;1" transparent="0" backgroundColor="#00ffff" />
+    <widget name="glow_right" position="822,200" size="8,55"
+            font="Regular;1" transparent="0" backgroundColor="#00ffff" />
+
     <widget name="line_page_top" position="50,820" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
     <widget name="page_counter" position="50,825" size="780,50"
@@ -334,6 +340,9 @@ class PomBissList(Screen):
         self.page_start = 0
         self.feeds_per_page = 10
 
+        # برای انیمیشن
+        self.glow_phase = 0
+
         self["myActionsMap"] = ActionMap(
             ["SetupActions", "DirectionActions", "ColorActions"],
             {
@@ -366,8 +375,11 @@ class PomBissList(Screen):
         self["today_date"] = Label("")
         self["page_counter"] = Label("[1/1]")
 
-        # برند
         self["brand_label"] = Label("@VUSOLO")
+
+        # نور متحرک
+        self["glow_left"] = Label("")
+        self["glow_right"] = Label("")
 
         for i in range(1, 11):
             self["feed_num_%d" % i] = Label("")
@@ -391,6 +403,13 @@ class PomBissList(Screen):
 
         self["nav_help"] = Label("Up/Down: Select  |  Left/Right: Page  |  OK: Open")
 
+        # تایمر برای انیمیشن نور
+        self.glow_timer = eTimer()
+        try:
+            self.glow_timer.callback.append(self.update_glow)
+        except:
+            self.glow_timer.timeout.connect(self.update_glow)
+
         self.onLayoutFinish.append(self.download_feeds)
 
     def download_feeds(self):
@@ -399,7 +418,6 @@ class PomBissList(Screen):
 
             self["label_category"].setText(_("Downloading..."))
 
-            # تاریخ + ساعت
             now = time.strftime("%Y-%m-%d  %H:%M")
             self["today_date"].setText("Updated: %s" % now)
 
@@ -428,7 +446,6 @@ class PomBissList(Screen):
             self.current_index = 0
             self.page_start = 0
 
-            # تعداد فیدها
             total = len(self.allfeeds)
             self["feed_count"].setText("[%d Feeds]" % total)
 
@@ -437,8 +454,56 @@ class PomBissList(Screen):
             self.update_list()
             self.update_details()
 
+            # شروع انیمیشن
+            self.glow_timer.start(200)
+
         except Exception as exc:
             log_debug("download error: %s" % str(exc))
+
+    def update_glow(self):
+        """انیمیشن نور - حرکت نور دور فید انتخاب‌شده"""
+        try:
+            # موقعیت فید انتخاب‌شده
+            row = self.current_index - self.page_start
+
+            if row < 0 or row >= 10:
+                self["glow_left"].hide()
+                self["glow_right"].hide()
+                return
+
+            self["glow_left"].show()
+            self["glow_right"].show()
+
+            # مختصات فید انتخاب‌شده
+            y_pos = 200 + (row * 60)
+            y_end = y_pos + 55
+
+            # انیمیشن: نور از بالا به پایین حرکت می‌کنه
+            offset = (self.glow_phase * 3) % 55
+
+            # نور چپ (از بالا به پایین)
+            self["glow_left"].instance.setPosition(50, y_pos + offset)
+            self["glow_left"].instance.resize(8, 10)
+
+            # نور راست (از پایین به بالا - معکوس)
+            offset2 = 55 - offset
+            self["glow_right"].instance.setPosition(822, y_pos + offset2 - 10)
+            self["glow_right"].instance.resize(8, 10)
+
+            # تغییر رنگ برای درخشش
+            colors = [0x00ffff, 0x00aaff, 0x0088ff, 0x00aaff, 0x00ffff]
+            color = colors[self.glow_phase % len(colors)]
+
+            try:
+                self["glow_left"].instance.setBackgroundColor(color)
+                self["glow_right"].instance.setBackgroundColor(color)
+            except:
+                pass
+
+            self.glow_phase += 1
+
+        except Exception as e:
+            pass
 
     def update_list(self):
         """پر کردن ۱۰ خط لیست"""
@@ -609,6 +674,10 @@ class PomBissList(Screen):
         )
 
     def cancel(self):
+        try:
+            self.glow_timer.stop()
+        except:
+            pass
         self.close()
 
 
