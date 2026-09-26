@@ -592,11 +592,18 @@ class PomBissList(Screen):
             try:
                 clean = sat_pos.replace("E", "").replace("W", "").replace("°", "").strip()
                 log_debug("sat_pos clean: '%s'" % clean)
-                deg = float(clean)
-                if "W" in sat_pos.upper():
-                    deg = -deg
-                self.pending_orb = int(deg * 10)
-                log_debug("deg: %f, orb: %d" % (deg, self.pending_orb))
+
+                # چک: اگه عدد خالص بود (مثل 130 یا 216) → خودش موقعیته
+                if clean.isdigit() or (clean.startswith("-") and clean[1:].isdigit()):
+                    self.pending_orb = int(clean)
+                    log_debug("orb (pure number): %d" % self.pending_orb)
+                else:
+                    # فرمت 13.0E یا 13E
+                    deg = float(clean)
+                    if "W" in sat_pos.upper():
+                        deg = -deg
+                    self.pending_orb = int(deg * 10)
+                    log_debug("deg: %f, orb: %d" % (deg, self.pending_orb))
             except Exception as e:
                 log_debug("orb parse error: %s" % str(e))
                 self.pending_orb = 130
