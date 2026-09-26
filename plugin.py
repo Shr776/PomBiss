@@ -49,7 +49,7 @@ config.plugins.PomBiss.nimnum = ConfigSelection(
 FULLHD = False
 if getDesktop(0).size().width() > 1800:
     FULLHD = True
-
+    
 
 # ============================================================
 # SCREEN 1 - POMBISS LIST (صفحه لیست فیدها)
@@ -79,39 +79,155 @@ class PomBissList(Screen):
     <widget name="line_list_bot" position="50,185" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
-    <!-- 10 خط لیست فیدها -->
-    <widget name="feed_1" position="60,200" size="760,55"
-            font="Regular;22" transparent="1" foregroundColor="#ffffff"
+    <!-- ============ 10 خط لیست - هر خط 4 Label ============ -->
+
+    <!-- خط 1 -->
+    <widget name="feed_num_1" position="70,200" size="90,55"
+            font="Regular;24" transparent="1" foregroundColor="#ffff00"
             halign="left" valign="center" />
-    <widget name="feed_2" position="60,260" size="760,55"
-            font="Regular;22" transparent="1" foregroundColor="#ffffff"
+    <widget name="feed_sat_1" position="170,200" size="290,55"
+            font="Regular;22" transparent="1" foregroundColor="#00ff88"
             halign="left" valign="center" />
-    <widget name="feed_3" position="60,320" size="760,55"
-            font="Regular;22" transparent="1" foregroundColor="#ffffff"
+    <widget name="feed_freq_1" position="480,200" size="180,55"
+            font="Regular;22" transparent="1" foregroundColor="#00aaff"
             halign="left" valign="center" />
-    <widget name="feed_4" position="60,380" size="760,55"
-            font="Regular;22" transparent="1" foregroundColor="#ffffff"
-            halign="left" valign="center" />
-    <widget name="feed_5" position="60,440" size="760,55"
-            font="Regular;22" transparent="1" foregroundColor="#ffffff"
-            halign="left" valign="center" />
-    <widget name="feed_6" position="60,500" size="760,55"
-            font="Regular;22" transparent="1" foregroundColor="#ffffff"
-            halign="left" valign="center" />
-    <widget name="feed_7" position="60,560" size="760,55"
-            font="Regular;22" transparent="1" foregroundColor="#ffffff"
-            halign="left" valign="center" />
-    <widget name="feed_8" position="60,620" size="760,55"
-            font="Regular;22" transparent="1" foregroundColor="#ffffff"
-            halign="left" valign="center" />
-    <widget name="feed_9" position="60,680" size="760,55"
-            font="Regular;22" transparent="1" foregroundColor="#ffffff"
-            halign="left" valign="center" />
-    <widget name="feed_10" position="60,740" size="760,55"
-            font="Regular;22" transparent="1" foregroundColor="#ffffff"
+    <widget name="feed_id_1" position="670,200" size="160,55"
+            font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
-    <!-- شماره صفحه (پایین لیست) -->
+    <!-- خط 2 -->
+    <widget name="feed_num_2" position="70,260" size="90,55"
+            font="Regular;24" transparent="1" foregroundColor="#ffff00"
+            halign="left" valign="center" />
+    <widget name="feed_sat_2" position="170,260" size="290,55"
+            font="Regular;22" transparent="1" foregroundColor="#00ff88"
+            halign="left" valign="center" />
+    <widget name="feed_freq_2" position="480,260" size="180,55"
+            font="Regular;22" transparent="1" foregroundColor="#00aaff"
+            halign="left" valign="center" />
+    <widget name="feed_id_2" position="670,260" size="160,55"
+            font="Regular;19" transparent="1" foregroundColor="#ffffff"
+            halign="left" valign="center" />
+
+    <!-- خط 3 -->
+    <widget name="feed_num_3" position="70,320" size="90,55"
+            font="Regular;24" transparent="1" foregroundColor="#ffff00"
+            halign="left" valign="center" />
+    <widget name="feed_sat_3" position="170,320" size="290,55"
+            font="Regular;22" transparent="1" foregroundColor="#00ff88"
+            halign="left" valign="center" />
+    <widget name="feed_freq_3" position="480,320" size="180,55"
+            font="Regular;22" transparent="1" foregroundColor="#00aaff"
+            halign="left" valign="center" />
+    <widget name="feed_id_3" position="670,320" size="160,55"
+            font="Regular;19" transparent="1" foregroundColor="#ffffff"
+            halign="left" valign="center" />
+
+    <!-- خط 4 -->
+    <widget name="feed_num_4" position="70,380" size="90,55"
+            font="Regular;24" transparent="1" foregroundColor="#ffff00"
+            halign="left" valign="center" />
+    <widget name="feed_sat_4" position="170,380" size="290,55"
+            font="Regular;22" transparent="1" foregroundColor="#00ff88"
+            halign="left" valign="center" />
+    <widget name="feed_freq_4" position="480,380" size="180,55"
+            font="Regular;22" transparent="1" foregroundColor="#00aaff"
+            halign="left" valign="center" />
+    <widget name="feed_id_4" position="670,380" size="160,55"
+            font="Regular;19" transparent="1" foregroundColor="#ffffff"
+            halign="left" valign="center" />
+
+    <!-- خط 5 -->
+    <widget name="feed_num_5" position="70,440" size="90,55"
+            font="Regular;24" transparent="1" foregroundColor="#ffff00"
+            halign="left" valign="center" />
+    <widget name="feed_sat_5" position="170,440" size="290,55"
+            font="Regular;22" transparent="1" foregroundColor="#00ff88"
+            halign="left" valign="center" />
+    <widget name="feed_freq_5" position="480,440" size="180,55"
+            font="Regular;22" transparent="1" foregroundColor="#00aaff"
+            halign="left" valign="center" />
+    <widget name="feed_id_5" position="670,440" size="160,55"
+            font="Regular;19" transparent="1" foregroundColor="#ffffff"
+            halign="left" valign="center" />
+
+    <!-- خط 6 -->
+    <widget name="feed_num_6" position="70,500" size="90,55"
+            font="Regular;24" transparent="1" foregroundColor="#ffff00"
+            halign="left" valign="center" />
+    <widget name="feed_sat_6" position="170,500" size="290,55"
+            font="Regular;22" transparent="1" foregroundColor="#00ff88"
+            halign="left" valign="center" />
+    <widget name="feed_freq_6" position="480,500" size="180,55"
+            font="Regular;22" transparent="1" foregroundColor="#00aaff"
+            halign="left" valign="center" />
+    <widget name="feed_id_6" position="670,500" size="160,55"
+            font="Regular;19" transparent="1" foregroundColor="#ffffff"
+            halign="left" valign="center" />
+
+    <!-- خط 7 -->
+    <widget name="feed_num_7" position="70,560" size="90,55"
+            font="Regular;24" transparent="1" foregroundColor="#ffff00"
+            halign="left" valign="center" />
+    <widget name="feed_sat_7" position="170,560" size="290,55"
+            font="Regular;22" transparent="1" foregroundColor="#00ff88"
+            halign="left" valign="center" />
+    <widget name="feed_freq_7" position="480,560" size="180,55"
+            font="Regular;22" transparent="1" foregroundColor="#00aaff"
+            halign="left" valign="center" />
+    <widget name="feed_id_7" position="670,560" size="160,55"
+            font="Regular;19" transparent="1" foregroundColor="#ffffff"
+            halign="left" valign="center" />
+
+    <!-- خط 8 -->
+    <widget name="feed_num_8" position="70,620" size="90,55"
+            font="Regular;24" transparent="1" foregroundColor="#ffff00"
+            halign="left" valign="center" />
+    <widget name="feed_sat_8" position="170,620" size="290,55"
+            font="Regular;22" transparent="1" foregroundColor="#00ff88"
+            halign="left" valign="center" />
+    <widget name="feed_freq_8" position="480,620" size="180,55"
+            font="Regular;22" transparent="1" foregroundColor="#00aaff"
+            halign="left" valign="center" />
+    <widget name="feed_id_8" position="670,620" size="160,55"
+            font="Regular;19" transparent="1" foregroundColor="#ffffff"
+            halign="left" valign="center" />
+
+    <!-- خط 9 -->
+    <widget name="feed_num_9" position="70,680" size="90,55"
+            font="Regular;24" transparent="1" foregroundColor="#ffff00"
+            halign="left" valign="center" />
+    <widget name="feed_sat_9" position="170,680" size="290,55"
+            font="Regular;22" transparent="1" foregroundColor="#00ff88"
+            halign="left" valign="center" />
+    <widget name="feed_freq_9" position="480,680" size="180,55"
+            font="Regular;22" transparent="1" foregroundColor="#00aaff"
+            halign="left" valign="center" />
+    <widget name="feed_id_9" position="670,680" size="160,55"
+            font="Regular;19" transparent="1" foregroundColor="#ffffff"
+            halign="left" valign="center" />
+
+    <!-- خط 10 -->
+    <widget name="feed_num_10" position="70,740" size="90,55"
+            font="Regular;24" transparent="1" foregroundColor="#ffff00"
+            halign="left" valign="center" />
+    <widget name="feed_sat_10" position="170,740" size="290,55"
+            font="Regular;22" transparent="1" foregroundColor="#00ff88"
+            halign="left" valign="center" />
+    <widget name="feed_freq_10" position="480,740" size="180,55"
+            font="Regular;22" transparent="1" foregroundColor="#00aaff"
+            halign="left" valign="center" />
+    <widget name="feed_id_10" position="670,740" size="160,55"
+            font="Regular;19" transparent="1" foregroundColor="#ffffff"
+            halign="left" valign="center" />
+
+    <!-- ============ دو خط زرد انتخاب‌شده ============ -->
+    <widget name="sel_line_top" position="60,200" size="770,3"
+            font="Regular;1" transparent="0" backgroundColor="#ffff00" />
+    <widget name="sel_line_bot" position="60,255" size="770,3"
+            font="Regular;1" transparent="0" backgroundColor="#ffff00" />
+
+    <!-- ============ شماره صفحه ============ -->
     <widget name="line_page_top" position="50,820" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
     <widget name="page_counter" position="50,825" size="780,50"
@@ -121,57 +237,51 @@ class PomBissList(Screen):
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
     <!-- ============ کادر جزئیات (راست) ============ -->
-    <!-- عنوان/دسته - قرمز -->
-    <widget name="line_cat_top" position="860,130" size="1010,3"
+    <widget name="line_cat_top" position="860,180" size="1010,3"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
-    <widget name="label_category" position="860,135" size="1010,90"
+    <widget name="label_category" position="860,185" size="1010,90"
             font="Regular;22" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" />
-    <widget name="line_cat_bot" position="860,230" size="1010,3"
+    <widget name="line_cat_bot" position="860,280" size="1010,3"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
 
-    <!-- ماهواره - سبز -->
-    <widget name="line_sat_top" position="960,250" size="810,3"
+    <widget name="line_sat_top" position="960,300" size="810,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
-    <widget name="label_satellite" position="960,255" size="810,55"
+    <widget name="label_satellite" position="960,305" size="810,55"
             font="Regular;28" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" />
-    <widget name="line_sat_bot" position="960,315" size="810,3"
+    <widget name="line_sat_bot" position="960,365" size="810,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
-    <!-- فرکانس - آبی -->
-    <widget name="line_freq_top" position="910,335" size="910,3"
+    <widget name="line_freq_top" position="910,385" size="910,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
-    <widget name="label_frequency" position="910,340" size="910,55"
+    <widget name="label_frequency" position="910,390" size="910,55"
             font="Regular;26" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" />
-    <widget name="line_freq_bot" position="910,400" size="910,3"
+    <widget name="line_freq_bot" position="910,450" size="910,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
-    <!-- ID - سبز -->
-    <widget name="line_id_top" position="910,420" size="910,3"
+    <widget name="line_id_top" position="910,470" size="910,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
-    <widget name="label_id" position="910,425" size="910,55"
+    <widget name="label_id" position="910,475" size="910,55"
             font="Regular;28" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" />
-    <widget name="line_id_bot" position="910,485" size="910,3"
+    <widget name="line_id_bot" position="910,535" size="910,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
-    <!-- CW - قرمز با متن سبز -->
-    <widget name="line_cw_top" position="860,505" size="1010,3"
+    <widget name="line_cw_top" position="860,555" size="1010,3"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
-    <widget name="label_cw" position="860,510" size="1010,60"
+    <widget name="label_cw" position="860,560" size="1010,60"
             font="Regular;32" transparent="1" foregroundColor="#00ff00"
             halign="center" valign="center" />
-    <widget name="line_cw_bot" position="860,575" size="1010,3"
+    <widget name="line_cw_bot" position="860,625" size="1010,3"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
 
-    <!-- تاریخ/ساعت -->
-    <widget name="label_datetime" position="860,590" size="1010,40"
+    <widget name="label_datetime" position="860,640" size="1010,40"
             font="Regular;20" transparent="1" foregroundColor="#00ffff"
             halign="center" valign="center" />
 
-    <!-- ============ دکمه‌ها (پایین راست) ============ -->
+    <!-- ============ دکمه‌ها ============ -->
     <widget name="btn_red_bg" position="1150,850" size="160,55"
             font="Regular;1" transparent="0" backgroundColor="#cc0000" />
     <widget name="key_red" position="1150,850" size="160,55"
@@ -190,7 +300,6 @@ class PomBissList(Screen):
             font="Regular;22" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" />
 
-    <!-- راهنمای ناوبری پایین -->
     <widget name="nav_help" position="50,940" size="1820,40"
             font="Regular;18" transparent="1" foregroundColor="#888888"
             halign="center" valign="center" />
@@ -230,7 +339,8 @@ class PomBissList(Screen):
                      "line_sat_top", "line_sat_bot",
                      "line_freq_top", "line_freq_bot",
                      "line_id_top", "line_id_bot",
-                     "line_cw_top", "line_cw_bot"]:
+                     "line_cw_top", "line_cw_bot",
+                     "sel_line_top", "sel_line_bot"]:
             self[line] = Label("")
 
         # عنوان‌ها
@@ -238,9 +348,12 @@ class PomBissList(Screen):
         self["list_header"] = Label("FEED LIST")
         self["page_counter"] = Label("[1/1]")
 
-        # ۱۰ خط لیست
+        # 10 خط - 4 Label هر خط
         for i in range(1, 11):
-            self["feed_%d" % i] = Label("")
+            self["feed_num_%d" % i] = Label("")
+            self["feed_sat_%d" % i] = Label("")
+            self["feed_freq_%d" % i] = Label("")
+            self["feed_id_%d" % i] = Label("")
 
         # اطلاعات جزئیات
         self["label_category"] = Label("")
@@ -258,11 +371,10 @@ class PomBissList(Screen):
         self["key_green"] = Label("SCAN")
         self["key_yellow"] = Label("DVB")
 
-        # راهنما
         self["nav_help"] = Label("Up/Down: Select  |  Left/Right: Page  |  OK: Open")
 
         self.onLayoutFinish.append(self.download_feeds)
-
+        
     def download_feeds(self):
         try:
             self["label_category"].setText(_("Downloading..."))
@@ -325,28 +437,33 @@ class PomBissList(Screen):
                 sat_label = parts[3].strip() if len(parts) > 3 else ""
                 feed_id = parts[5].strip() if len(parts) > 5 else ""
 
-                # شماره + ماهواره + فرکانس + ID
-                marker = "► " if feed_idx == self.current_index else "   "
-                text = "%s[%d] %s  |  %s %s  |  %s" % (
-                    marker, feed_idx + 1, sat_label, freq, pol, feed_id
-                )
-
-                # رنگ انتخاب‌شده
-                if feed_idx == self.current_index:
-                    self["feed_%d" % i].setText(text)
-                    # رنگ زرد برای انتخاب
-                    try:
-                        self["feed_%d" % i].instance.setForegroundColor(0xffff00)
-                    except:
-                        pass
-                else:
-                    self["feed_%d" % i].setText(text)
-                    try:
-                        self["feed_%d" % i].instance.setForegroundColor(0xffffff)
-                    except:
-                        pass
+                # شماره
+                self["feed_num_%d" % i].setText("[%d]" % (feed_idx + 1))
+                # ماهواره
+                self["feed_sat_%d" % i].setText(sat_label)
+                # فرکانس
+                self["feed_freq_%d" % i].setText("%s %s" % (freq, pol))
+                # ID
+                self["feed_id_%d" % i].setText(feed_id)
             else:
-                self["feed_%d" % i].setText("")
+                self["feed_num_%d" % i].setText("")
+                self["feed_sat_%d" % i].setText("")
+                self["feed_freq_%d" % i].setText("")
+                self["feed_id_%d" % i].setText("")
+
+        # جابجایی خط زرد انتخاب‌شده
+        row_in_page = self.current_index - self.page_start
+        if 0 <= row_in_page < 10:
+            y_top = 200 + (row_in_page * 60)
+            y_bot = y_top + 55
+
+            try:
+                self["sel_line_top"].instance.setPosition(60, y_top)
+                self["sel_line_top"].instance.resize(770, 3)
+                self["sel_line_bot"].instance.setPosition(60, y_bot)
+                self["sel_line_bot"].instance.resize(770, 3)
+            except:
+                pass
 
     def update_details(self):
         """نمایش جزئیات فید انتخاب‌شده"""
@@ -473,3 +590,4 @@ def Plugins(**kwargs):
         icon="FSSLOGO.png",
         fnc=main
     )
+    
