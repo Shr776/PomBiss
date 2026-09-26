@@ -548,7 +548,7 @@ class PomBissList(Screen):
         self.download_feeds()
 
     def feedscanall(self):
-        """باز کردن Scan با فرکانس فید فعلی"""
+        """باز کردن Satfinder و تنظیم Tuner"""
         if not self.allfeeds:
             return
 
@@ -561,60 +561,45 @@ class PomBissList(Screen):
             if len(freq_parts) < 4:
                 return
 
-            sat_pos = freq_parts[0]
-            freq = int(freq_parts[1])
-            pol = freq_parts[2].upper()
-            sr = int(freq_parts[3])
+            # ذخیره برای retune
+            self.pending_freq = int(freq_parts[1])
+            self.pending_pol = freq_parts[2].upper()
+            self.pending_sr = int(freq_parts[3])
 
-            # تبدیل موقعیت
+            sat_pos = freq_parts[0]
             try:
                 deg = float(sat_pos.replace("E", "").replace("W", "").strip())
                 if "W" in sat_pos.upper():
                     deg = -deg
-                orbital_pos = int(deg * 10)
+                self.pending_orb = int(deg * 10)
             except:
-                orbital_pos = 130
-
-            # ساخت transponder
-            from enigma import eDVBFrontendParametersSatellite
-
-            tp = eDVBFrontendParametersSatellite()
-            tp.frequency = freq * 1000
-            tp.symbol_rate = sr * 1000
-            tp.polarization = (
-                eDVBFrontendParametersSatellite.Polarisation_Horizontal
-                if pol == "H"
-                else eDVBFrontendParametersSatellite.Polarisation_Vertical
-            )
-            tp.fec = eDVBFrontendParametersSatellite.FEC_Auto
-            tp.inversion = eDVBFrontendParametersSatellite.Inversion_Unknown
-            tp.system = eDVBFrontendParametersSatellite.System_DVB_S2
-            tp.modulation = eDVBFrontendParametersSatellite.Modulation_QPSK
-            tp.orbital_position = orbital_pos
-
-            # باز کردن ScanSetup با transponder
-            try:
-                from Screens.ScanSetup import ScanSetup
-                self.session.open(ScanSetup, tp)
-                return
-            except TypeError:
-                # اگه پارامتر قبول نکرد، بدون پارامتر
-                try:
-                    from Screens.ScanSetup import ScanSetup
-                    self.session.open(ScanSetup)
-                    return
-                except Exception:
-                    pass
-            except Exception as e:
-                print("[PomBiss] ScanSetup error:", e)
+                self.pending_orb = 130
 
         except Exception as e:
-            print("[PomBiss] feedscanall error:", e)
+            print("[PomBiss] parse error:", e)
+            return
 
-        # fallback به Satfinder
+        # باز کردن Satfinder
         try:
             from Plugins.SystemPlugins.Satfinder.plugin import SatfinderExtra
             self.session.open(SatfinderExtra)
+            self.start_retune()
+            return
+        except Exception:
+            pass
+
+        try:
+            from Plugins.SystemPlugins.Satfinder.plugin import SatfinderMain
+            SatfinderMain(self.session)
+            self.start_retune()
+            return
+        except Exception:
+            pass
+
+        try:
+            from Plugins.SystemPlugins.Satfinder.plugin import Satfinder
+            self.session.open(Satfinder)
+            self.start_retune()
             return
         except Exception:
             pass
@@ -625,6 +610,93 @@ class PomBissList(Screen):
             MessageBox.TYPE_ERROR,
             timeout=10
         )
+
+    def start_retune(self):
+        """شروع تایمر برای retune"""
+        from enigma import eTimer
+        self.retune_timer = eTimer()
+        try:
+            self.retune_timer.callback.append(self.do_retune)
+        except:
+            self.retune_timer.timeout.connect(self.do_retune)
+        self.retune_timer.start(1500, True)  # ۱.۵ ثانیه بعد
+
+    def do_retune(self):
+        """تلاش برای تنظیم Tuner با retuneSat"""
+        try:
+            # ساخت transponder
+            from enigma import eDVBFrontendParametersSatellite
+
+            tp = eDVBFrontendParametersSatellite()
+            tp.frequency = self.pending_freq * 1000
+            tp.symbol_rate = self.pending_sr * 1000
+            tp.polarization = (
+                eDVBFrontendParametersSatellite.Polarisation_Horizontal
+                if self.pending_pol == "H"
+                else eDVBFrontendParametersSatellite.Polarisation_Vertical
+            )
+            tp.fec = eDVBFrontendParametersSatellite.FEC_Auto
+            tp.inversion = eDVBFrontendParametersSatellite.Inversion_Unknown
+            tp.system = eDVBFrontendParametersSatellite.System_DVB_S2
+            tp.modulation = eDVBFrontendParametersSatellite.Modulation_QPSK
+            tp.orbital_position = self.pending_orb
+
+            # تلاش برای گرفتن Satfinder فعلی
+            current = self.session.current_dialog
+            if current:
+                print("[PomBiss] Current screen:", current)
+
+                # اگه retuneSat داره
+                if hasattr(current, 'retuneSat'):
+                    try:
+                        current.retuneSat(tp)
+                        print("[PomBiss] retuneSat called")
+                        return
+                    except Exception as e:
+                        print("[PomBiss] retuneSat error:", e)
+
+                # اگه retune داره
+                if hasattr(current, 'retune'):
+                    try:
+                        current.retune(tp)
+                        print("[PomBiss] retune called")
+                        return
+                    except Exception as e:
+                        print("[PomBiss] retune error:", e)
+
+            # fallback: از frontend مستقیم
+            from enigma import eDVBResourceManager
+            from Components.NimManager import nimmanager
+
+            nim_slot = int(config.plugins.PomBiss.nimnum.value)
+            frontend = None
+
+            try:
+                rm = eDVBResourceManager.getInstance()
+                frontend = rm.getFrontend(nim_slot, 0)
+            except:
+                pass
+
+            if frontend is None:
+                try:
+                    frontend = nimmanager.getFrontend(nim_slot)
+                except:
+                    pass
+
+            if frontend is not None:
+                try:
+                    frontend.setFrontend(tp)
+                    print("[PomBiss] Frontend set directly")
+                except Exception as e:
+                    print("[PomBiss] setFrontend error:", e)
+                    try:
+                        frontend.tune(tp)
+                        print("[PomBiss] Frontend tuned")
+                    except Exception as e2:
+                        print("[PomBiss] tune error:", e2)
+
+        except Exception as e:
+            print("[PomBiss] do_retune error:", e)
 
     def cancel(self):
         self.close()
