@@ -69,7 +69,7 @@ POSITION_FIX = {
 
 
 # ============================================================
-# SCREEN 1 - POMBISS LIST (صفحه لیست فیدها)
+# SCREEN 1 - POMBISS LIST
 # ============================================================
 
 class PomBissList(Screen):
@@ -78,7 +78,6 @@ class PomBissList(Screen):
     skinL = '''
 <screen name="PomBissList" position="center,center" size="1920,1080" title="PomBiss" flags="wfNoBorder" backgroundColor="#0a0a1a">
 
-    <!-- ============ عنوان بالا ============ -->
     <widget name="line_title_top" position="710,30" size="500,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
     <widget name="title" position="710,35" size="500,50"
@@ -87,7 +86,6 @@ class PomBissList(Screen):
     <widget name="line_title_bot" position="710,90" size="500,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
-    <!-- ============ کادر لیست (چپ) ============ -->
     <widget name="line_list_top" position="50,130" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
     <widget name="list_header" position="180,138" size="400,40"
@@ -99,9 +97,6 @@ class PomBissList(Screen):
     <widget name="line_list_bot" position="50,185" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
-    <!-- ============ 10 خط لیست ============ -->
-
-    <!-- خط 1 -->
     <widget name="feed_num_1" position="55,200" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
             halign="left" valign="center" />
@@ -115,7 +110,6 @@ class PomBissList(Screen):
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
-    <!-- خط 2 -->
     <widget name="feed_num_2" position="55,260" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
             halign="left" valign="center" />
@@ -129,7 +123,6 @@ class PomBissList(Screen):
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
-    <!-- خط 3 -->
     <widget name="feed_num_3" position="55,320" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
             halign="left" valign="center" />
@@ -143,7 +136,6 @@ class PomBissList(Screen):
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
-    <!-- خط 4 -->
     <widget name="feed_num_4" position="55,380" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
             halign="left" valign="center" />
@@ -157,7 +149,6 @@ class PomBissList(Screen):
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
-    <!-- خط 5 -->
     <widget name="feed_num_5" position="55,440" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
             halign="left" valign="center" />
@@ -171,7 +162,6 @@ class PomBissList(Screen):
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
-    <!-- خط 6 -->
     <widget name="feed_num_6" position="55,500" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
             halign="left" valign="center" />
@@ -185,7 +175,6 @@ class PomBissList(Screen):
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
-    <!-- خط 7 -->
     <widget name="feed_num_7" position="55,560" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
             halign="left" valign="center" />
@@ -199,7 +188,6 @@ class PomBissList(Screen):
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
-    <!-- خط 8 -->
     <widget name="feed_num_8" position="55,620" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
             halign="left" valign="center" />
@@ -213,7 +201,6 @@ class PomBissList(Screen):
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
-    <!-- خط 9 -->
     <widget name="feed_num_9" position="55,680" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
             halign="left" valign="center" />
@@ -227,7 +214,6 @@ class PomBissList(Screen):
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
-    <!-- خط 10 -->
     <widget name="feed_num_10" position="55,740" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
             halign="left" valign="center" />
@@ -241,7 +227,6 @@ class PomBissList(Screen):
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
-    <!-- ============ شماره صفحه ============ -->
     <widget name="line_page_top" position="50,820" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
     <widget name="page_counter" position="50,825" size="780,50"
@@ -250,7 +235,6 @@ class PomBissList(Screen):
     <widget name="line_page_bot" position="50,880" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
-    <!-- ============ کادر جزئیات (راست) ============ -->
     <widget name="line_cat_top" position="860,280" size="1010,3"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
     <widget name="label_category" position="860,285" size="1010,90"
@@ -295,7 +279,6 @@ class PomBissList(Screen):
             font="Regular;20" transparent="1" foregroundColor="#00ffff"
             halign="center" valign="center" />
 
-    <!-- ============ دکمه‌ها ============ -->
     <widget name="btn_red_bg" position="1150,850" size="160,55"
             font="Regular;1" transparent="0" backgroundColor="#cc0000" />
     <widget name="key_red" position="1150,850" size="160,55"
@@ -383,7 +366,7 @@ class PomBissList(Screen):
         self["nav_help"] = Label("Up/Down: Select  |  Left/Right: Page  |  OK: Open")
 
         self.onLayoutFinish.append(self.download_feeds)
-        
+
     def download_feeds(self):
         try:
             log_debug("=== download_feeds START ===")
@@ -425,7 +408,7 @@ class PomBissList(Screen):
             log_debug("download error: %s" % str(exc))
 
     def update_list(self):
-        """پر کردن ۱۰ خط لیست با رنگ‌بندی و انتخاب‌شده"""
+        """پر کردن ۱۰ خط لیست"""
         if not self.allfeeds:
             return
 
@@ -606,7 +589,6 @@ class PomBissList(Screen):
             log_debug("parse error: %s" % str(e))
             return
 
-        # باز کردن Satfinder
         try:
             from Plugins.SystemPlugins.Satfinder.plugin import SatfinderExtra
             self.session.open(SatfinderExtra)
@@ -653,41 +635,46 @@ class PomBissList(Screen):
         self.retune_timer.start(2000, True)
 
     def do_retune(self):
-        """تنظیم Tuner"""
+        """تنظیم Tuner با allocateRawChannel"""
         try:
             log_debug("=== do_retune START ===")
 
             from enigma import eDVBFrontendParametersSatellite
             from enigma import eDVBResourceManager
-            from Components.NimManager import nimmanager
 
-            nim_slot = int(config.plugins.PomBiss.nimnum.value)
-            frontend = None
+            res_mgr = eDVBResourceManager.getInstance()
+            if res_mgr is None:
+                log_debug("res_mgr is None")
+                return
 
+            log_debug("Got res_mgr")
+
+            raw_channel = None
             try:
-                rm = eDVBResourceManager.getInstance()
-                if rm:
-                    frontend = rm.getFrontend(nim_slot, 0)
-                    log_debug("Got frontend via rm.getFrontend")
+                raw_channel = res_mgr.allocateRawChannel(0)
+                log_debug("allocateRawChannel(0) OK")
             except Exception as e:
-                log_debug("rm.getFrontend error: %s" % str(e))
-
-            if frontend is None:
+                log_debug("allocateRawChannel(0) error: %s" % str(e))
                 try:
-                    frontend = nimmanager.getFrontend(nim_slot)
-                    log_debug("Got frontend via nimmanager.getFrontend")
-                except Exception as e:
-                    log_debug("nimmanager.getFrontend error: %s" % str(e))
+                    raw_channel = res_mgr.allocateRawChannel()
+                    log_debug("allocateRawChannel() OK")
+                except Exception as e2:
+                    log_debug("allocateRawChannel() error: %s" % str(e2))
+                    return
+
+            if raw_channel is None:
+                log_debug("raw_channel is None")
+                return
+
+            frontend = None
+            try:
+                frontend = raw_channel.getFrontend()
+                log_debug("raw_channel.getFrontend() OK")
+            except Exception as e:
+                log_debug("getFrontend error: %s" % str(e))
 
             if frontend is None:
-                log_debug("Frontend is None, fallback to retuneSat")
-                current = self.session.current_dialog
-                if current and hasattr(current, 'retuneSat'):
-                    try:
-                        current.retuneSat()
-                        log_debug("retuneSat() fallback OK")
-                    except:
-                        pass
+                log_debug("frontend is None")
                 return
 
             tp = eDVBFrontendParametersSatellite()
@@ -718,6 +705,12 @@ class PomBissList(Screen):
                     log_debug("tune OK")
                 except Exception as e2:
                     log_debug("tune error: %s" % str(e2))
+
+            try:
+                res_mgr.freeRawChannel(raw_channel, 0)
+                log_debug("freeRawChannel OK")
+            except Exception as e:
+                log_debug("freeRawChannel error: %s" % str(e))
 
             current = self.session.current_dialog
             if current and hasattr(current, 'retuneSat'):
