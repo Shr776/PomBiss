@@ -588,12 +588,17 @@ class PomBissList(Screen):
             self.pending_sr = int(freq_parts[3])
 
             sat_pos = freq_parts[0]
+            log_debug("sat_pos raw: '%s'" % sat_pos)
             try:
-                deg = float(sat_pos.replace("E", "").replace("W", "").strip())
+                clean = sat_pos.replace("E", "").replace("W", "").replace("°", "").strip()
+                log_debug("sat_pos clean: '%s'" % clean)
+                deg = float(clean)
                 if "W" in sat_pos.upper():
                     deg = -deg
                 self.pending_orb = int(deg * 10)
-            except:
+                log_debug("deg: %f, orb: %d" % (deg, self.pending_orb))
+            except Exception as e:
+                log_debug("orb parse error: %s" % str(e))
                 self.pending_orb = 130
 
             log_debug("Feed: %d %s %d @ orb %d" % (
