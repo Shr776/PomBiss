@@ -104,29 +104,7 @@ class PomBissList(Screen):
     <widget name="line_list_bot" position="50,185" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
-    <!-- ============ پس‌زمینه انتخاب‌شده (10 خط) ============ -->
-    <widget name="sel_bg_1" position="55,197" size="775,60"
-            font="Regular;1" transparent="0" backgroundColor="#0a0a1a" />
-    <widget name="sel_bg_2" position="55,257" size="775,60"
-            font="Regular;1" transparent="0" backgroundColor="#0a0a1a" />
-    <widget name="sel_bg_3" position="55,317" size="775,60"
-            font="Regular;1" transparent="0" backgroundColor="#0a0a1a" />
-    <widget name="sel_bg_4" position="55,377" size="775,60"
-            font="Regular;1" transparent="0" backgroundColor="#0a0a1a" />
-    <widget name="sel_bg_5" position="55,437" size="775,60"
-            font="Regular;1" transparent="0" backgroundColor="#0a0a1a" />
-    <widget name="sel_bg_6" position="55,497" size="775,60"
-            font="Regular;1" transparent="0" backgroundColor="#0a0a1a" />
-    <widget name="sel_bg_7" position="55,557" size="775,60"
-            font="Regular;1" transparent="0" backgroundColor="#0a0a1a" />
-    <widget name="sel_bg_8" position="55,617" size="775,60"
-            font="Regular;1" transparent="0" backgroundColor="#0a0a1a" />
-    <widget name="sel_bg_9" position="55,677" size="775,60"
-            font="Regular;1" transparent="0" backgroundColor="#0a0a1a" />
-    <widget name="sel_bg_10" position="55,737" size="775,60"
-            font="Regular;1" transparent="0" backgroundColor="#0a0a1a" />
-
-    <!-- ============ خط عمودی انتخاب‌شده ============ -->
+    <!-- ============ نوار عمودی انتخاب‌شده ============ -->
     <widget name="sel_bar" position="50,200" size="6,55"
             font="Regular;1" transparent="0" backgroundColor="#00ffff" />
 
@@ -385,11 +363,7 @@ class PomBissList(Screen):
                      "line_brand_top", "line_brand_bot"]:
             self[line] = Label("")
 
-        # پس‌زمینه انتخاب‌شده
-        for i in range(1, 11):
-            self["sel_bg_%d" % i] = Label("")
-
-        # خط عمودی انتخاب‌شده
+        # نوار عمودی انتخاب‌شده
         self["sel_bar"] = Label("")
 
         self["title"] = Label("PomBiss")
@@ -469,28 +443,6 @@ class PomBissList(Screen):
         except Exception as exc:
             log_debug("download error: %s" % str(exc))
 
-    def update_selection_highlight(self):
-        """جابجایی پس‌زمینه و خط عمودی به فید انتخاب‌شده"""
-        try:
-            row = self.current_index - self.page_start
-
-            # ریست همه پس‌زمینه‌ها
-            for i in range(1, 11):
-                try:
-                    self["sel_bg_%d" % i].instance.setBackgroundColor(0x0a0a1a)
-                except:
-                    pass
-
-            # اگه فید توی این صفحه بود
-            if 0 <= row < 10:
-                try:
-                    self["sel_bg_%d" % (row + 1)].instance.setBackgroundColor(0x001a3a)
-                except:
-                    pass
-
-        except Exception as e:
-            log_debug("highlight error: %s" % str(e))
-
     def update_list(self):
         """پر کردن ۱۰ خط لیست"""
         if not self.allfeeds:
@@ -528,10 +480,10 @@ class PomBissList(Screen):
                     self["feed_id_%d" % i].setText(feed_id)
 
                     try:
-                        self["feed_num_%d" % i].instance.setForegroundColor(0x00ffff)
-                        self["feed_sat_%d" % i].instance.setForegroundColor(0x00ffff)
-                        self["feed_freq_%d" % i].instance.setForegroundColor(0x00ffff)
-                        self["feed_id_%d" % i].instance.setForegroundColor(0x00ffff)
+                        self["feed_num_%d" % i].instance.setForegroundColor(0xffff00)
+                        self["feed_sat_%d" % i].instance.setForegroundColor(0xffff00)
+                        self["feed_freq_%d" % i].instance.setForegroundColor(0xffff00)
+                        self["feed_id_%d" % i].instance.setForegroundColor(0xffff00)
                     except:
                         pass
                 else:
@@ -553,8 +505,21 @@ class PomBissList(Screen):
                 self["feed_freq_%d" % i].setText("")
                 self["feed_id_%d" % i].setText("")
 
-        # هایلایت انتخاب‌شده
-        self.update_selection_highlight()
+        # جابجایی نوار عمودی
+        row = self.current_index - self.page_start
+        if 0 <= row < 10:
+            y_pos = 200 + (row * 60)
+            try:
+                self["sel_bar"].instance.setPosition(50, y_pos)
+                self["sel_bar"].instance.resize(6, 55)
+                self["sel_bar"].show()
+            except:
+                pass
+        else:
+            try:
+                self["sel_bar"].hide()
+            except:
+                pass
 
     def update_details(self):
         """نمایش جزئیات فید انتخاب‌شده"""
