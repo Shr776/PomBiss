@@ -51,6 +51,16 @@ FULLHD = False
 if getDesktop(0).size().width() > 1800:
     FULLHD = True
 
+
+def log_debug(msg):
+    """نوشتن لاگ توی فایل"""
+    try:
+        with open("/tmp/PomBissSatfinder.log", "a") as f:
+            f.write("[PomBiss] %s\n" % msg)
+    except:
+        pass
+
+
 # اصلاح موقعیت‌های ناقص
 POSITION_FIX = {
     "31": "Eutelsat 3C ( 3.1E )",
@@ -376,6 +386,8 @@ class PomBissList(Screen):
         
     def download_feeds(self):
         try:
+            log_debug("=== download_feeds START ===")
+
             self["label_category"].setText(_("Downloading..."))
             self["today_date"].setText(time.strftime("%Y-%m-%d  %H:%M"))
 
@@ -404,11 +416,13 @@ class PomBissList(Screen):
             self.current_index = 0
             self.page_start = 0
 
+            log_debug("Loaded %d feeds" % len(lines))
+
             self.update_list()
             self.update_details()
 
         except Exception as exc:
-            self["label_category"].setText(_("Error: %s") % str(exc)[:60])
+            log_debug("download error: %s" % str(exc))
 
     def update_list(self):
         """پر کردن ۱۰ خط لیست با رنگ‌بندی و انتخاب‌شده"""
@@ -436,7 +450,6 @@ class PomBissList(Screen):
                 sat_label = parts[3].strip() if len(parts) > 3 else ""
                 feed_id = parts[5].strip() if len(parts) > 5 else ""
 
-                # اصلاح موقعیت ناقص
                 if not sat_label or sat_label == "0":
                     sat_pos = freq_parts[0] if len(freq_parts) > 0 else ""
                     sat_label = POSITION_FIX.get(sat_pos, sat_label)
@@ -498,7 +511,6 @@ class PomBissList(Screen):
         feed_id = parts[5] if len(parts) > 5 else ""
         feed_datetime = parts[8] if len(parts) > 8 else ""
 
-        # اصلاح موقعیت ناقص
         if not sat_label or sat_label == "0":
             sat_pos = freq_parts[0] if len(freq_parts) > 0 else ""
             sat_label = POSITION_FIX.get(sat_pos, sat_label)
@@ -552,12 +564,15 @@ class PomBissList(Screen):
         if not self.allfeeds:
             return
 
+        log_debug("=== feedscanall START ===")
+
         try:
             line = self.allfeeds[self.current_index]
             parts = [p.strip() for p in line.split("=")]
             freq_parts = parts[0].split()
 
             if len(freq_parts) < 4:
+                log_debug("Not enough freq parts")
                 return
 
             self.pending_freq = int(freq_parts[1])
@@ -573,34 +588,41 @@ class PomBissList(Screen):
             except:
                 self.pending_orb = 130
 
+            log_debug("Feed: %d %s %d @ orb %d" % (
+                self.pending_freq, self.pending_pol,
+                self.pending_sr, self.pending_orb))
+
         except Exception as e:
-            print("[PomBiss] parse error: %s" % str(e))
+            log_debug("parse error: %s" % str(e))
             return
 
         # باز کردن Satfinder
         try:
             from Plugins.SystemPlugins.Satfinder.plugin import SatfinderExtra
             self.session.open(SatfinderExtra)
+            log_debug("SatfinderExtra opened")
             self.start_retune()
             return
-        except Exception:
-            pass
+        except Exception as e:
+            log_debug("SatfinderExtra error: %s" % str(e))
 
         try:
             from Plugins.SystemPlugins.Satfinder.plugin import SatfinderMain
             SatfinderMain(self.session)
+            log_debug("SatfinderMain opened")
             self.start_retune()
             return
-        except Exception:
-            pass
+        except Exception as e:
+            log_debug("SatfinderMain error: %s" % str(e))
 
         try:
             from Plugins.SystemPlugins.Satfinder.plugin import Satfinder
             self.session.open(Satfinder)
+            log_debug("Satfinder opened")
             self.start_retune()
             return
-        except Exception:
-            pass
+        except Exception as e:
+            log_debug("Satfinder error: %s" % str(e))
 
         self.session.open(
             MessageBox,
@@ -611,6 +633,7 @@ class PomBissList(Screen):
 
     def start_retune(self):
         """شروع تایمر برای retune"""
+        log_debug("Starting retune timer (2s)")
         from enigma import eTimer
         self.retune_timer = eTimer()
         try:
@@ -622,53 +645,53 @@ class PomBissList(Screen):
     def do_retune(self):
         """تلاش برای تنظیم Tuner"""
         try:
-            print("[PomBiss] === do_retune START ===")
+            log_debug("=== do_retune START ===")
 
             current = self.session.current_dialog
-            print("[PomBiss] Current screen: %s" % str(current))
+            log_debug("Current screen: %s" % str(current))
 
             if current is None:
-                print("[PomBiss] No current screen")
+                log_debug("No current screen")
                 return
 
             methods = [m for m in dir(current) if not m.startswith('_')]
-            print("[PomBiss] Methods: %s" % str(methods)[:500])
+            log_debug("Methods: %s" % str(methods)[:1000])
 
             if hasattr(current, 'retuneSat'):
-                print("[PomBiss] Trying retuneSat...")
+                log_debug("Trying retuneSat...")
                 try:
                     current.retuneSat()
-                    print("[PomBiss] retuneSat() OK")
+                    log_debug("retuneSat() OK")
                     return
                 except Exception as e:
-                    print("[PomBiss] retuneSat() error: %s" % str(e))
+                    log_debug("retuneSat() error: %s" % str(e))
 
             if hasattr(current, 'retune'):
-                print("[PomBiss] Trying retune...")
+                log_debug("Trying retune...")
                 try:
                     current.retune()
-                    print("[PomBiss] retune() OK")
+                    log_debug("retune() OK")
                     return
                 except Exception as e:
-                    print("[PomBiss] retune() error: %s" % str(e))
+                    log_debug("retune() error: %s" % str(e))
 
             if hasattr(current, 'keyGoScan'):
-                print("[PomBiss] Trying keyGoScan...")
+                log_debug("Trying keyGoScan...")
                 try:
                     current.keyGoScan()
-                    print("[PomBiss] keyGoScan() OK")
+                    log_debug("keyGoScan() OK")
                     return
                 except Exception as e:
-                    print("[PomBiss] keyGoScan() error: %s" % str(e))
+                    log_debug("keyGoScan() error: %s" % str(e))
 
             for m in methods:
-                if 'tune' in m.lower() or 'retune' in m.lower() or 'scan' in m.lower():
-                    print("[PomBiss] Found method: %s" % m)
+                if 'tune' in m.lower() or 'scan' in m.lower():
+                    log_debug("Found method: %s" % m)
 
         except Exception as e:
-            print("[PomBiss] do_retune error: %s" % str(e))
+            log_debug("do_retune error: %s" % str(e))
             import traceback
-            traceback.print_exc()
+            log_debug("traceback: %s" % traceback.format_exc())
 
     def cancel(self):
         self.close()
