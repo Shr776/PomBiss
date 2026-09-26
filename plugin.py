@@ -50,6 +50,12 @@ config.plugins.PomBiss.nimnum = ConfigSelection(
 FULLHD = False
 if getDesktop(0).size().width() > 1800:
     FULLHD = True
+    
+# اصلاح موقعیت‌های ناقص
+POSITION_FIX = {
+    "31": "Eutelsat 3C ( 3.1E )",
+    "216": "Eutelsat 21C ( 21.6E )",
+}
 
 
 # ============================================================
@@ -487,6 +493,14 @@ class PomBissList(Screen):
         title = parts[2] if len(parts) > 2 else ""
         sat_label = parts[3] if len(parts) > 3 else ""
         feed_id = parts[5] if len(parts) > 5 else ""
+        
+        if not sat_label or sat_label == "0":
+            sat_pos = freq_parts[0] if len(freq_parts) > 0 else ""
+            sat_label = POSITION_FIX.get(sat_pos, sat_label)
+        
+        if not sat_label or sat_label == "0":
+           sat_pos = freq_parts[0] if len(freq_parts) > 0 else ""
+           sat_label = POSITION_FIX.get(sat_pos, sat_label)
         feed_datetime = parts[8] if len(parts) > 8 else ""
 
         self["label_category"].setText("# " + title)
