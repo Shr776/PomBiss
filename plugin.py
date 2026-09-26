@@ -79,9 +79,12 @@ class PomBiss(Screen):
     <widget name="line_prev_bot" position="200,250" size="500,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
-    <!-- ============ شماره فید (وسط Prev و Next) ============ -->
-    <widget name="feed_counter" position="760,185" size="400,60"
+    <!-- ============ شماره فید + تاریخ/ساعت ============ -->
+    <widget name="feed_counter" position="760,180" size="400,50"
             font="Regular;36" transparent="1" foregroundColor="#ffff00"
+            halign="center" valign="center" />
+    <widget name="feed_datetime" position="660,230" size="600,30"
+            font="Regular;20" transparent="1" foregroundColor="#00ffff"
             halign="center" valign="center" />
 
     <!-- ============ Next - آبی نئون ============ -->
@@ -93,49 +96,49 @@ class PomBiss(Screen):
     <widget name="line_next_bot" position="1220,250" size="500,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
-    <!-- ============ کادر ۱: دسته‌بندی - قرمز نئون ============ -->
-    <widget name="line_cat_top" position="460,320" size="1000,3"
+    <!-- ============ کادر ۱: دسته‌بندی - قرمز نئون (بزرگ‌تر) ============ -->
+    <widget name="line_cat_top" position="460,300" size="1000,3"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
-    <widget name="label_category" position="460,325" size="1000,60"
-            font="Regular;30" transparent="1" foregroundColor="#ffffff"
+    <widget name="label_category" position="460,305" size="1000,110"
+            font="Regular;28" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" />
-    <widget name="line_cat_bot" position="460,390" size="1000,3"
+    <widget name="line_cat_bot" position="460,420" size="1000,3"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
 
     <!-- ============ کادر ۲: ماهواره - سبز نئون ============ -->
-    <widget name="line_sat_top" position="610,450" size="700,3"
+    <widget name="line_sat_top" position="610,460" size="700,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
-    <widget name="label_satellite" position="610,455" size="700,60"
+    <widget name="label_satellite" position="610,465" size="700,60"
             font="Regular;34" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" />
-    <widget name="line_sat_bot" position="610,520" size="700,3"
+    <widget name="line_sat_bot" position="610,530" size="700,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
     <!-- ============ کادر ۳: فرکانس - آبی نئون ============ -->
-    <widget name="line_freq_top" position="510,580" size="900,3"
+    <widget name="line_freq_top" position="510,590" size="900,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
-    <widget name="label_frequency" position="510,585" size="900,60"
+    <widget name="label_frequency" position="510,595" size="900,60"
             font="Regular;30" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" />
-    <widget name="line_freq_bot" position="510,650" size="900,3"
+    <widget name="line_freq_bot" position="510,660" size="900,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
     <!-- ============ کادر ۴: ID - سبز نئون ============ -->
-    <widget name="line_id_top" position="510,710" size="900,3"
+    <widget name="line_id_top" position="510,720" size="900,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
-    <widget name="label_id" position="510,715" size="900,60"
+    <widget name="label_id" position="510,725" size="900,60"
             font="Regular;34" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" />
-    <widget name="line_id_bot" position="510,780" size="900,3"
+    <widget name="line_id_bot" position="510,790" size="900,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
     <!-- ============ کادر ۵: CW - قرمز نئون ============ -->
-    <widget name="line_cw_top" position="460,840" size="1000,3"
+    <widget name="line_cw_top" position="460,850" size="1000,3"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
-    <widget name="label_cw" position="460,845" size="1000,65"
+    <widget name="label_cw" position="460,855" size="1000,65"
             font="Regular;36" transparent="1" foregroundColor="#00ff00"
             halign="center" valign="center" />
-    <widget name="line_cw_bot" position="460,915" size="1000,3"
+    <widget name="line_cw_bot" position="460,925" size="1000,3"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
 
     <!-- ============ دکمه‌ها ============ -->
@@ -209,6 +212,7 @@ class PomBiss(Screen):
         self["prev_text"] = Label("<<  Prev.")
         self["next_text"] = Label("Next  >>")
         self["feed_counter"] = Label("")
+        self["feed_datetime"] = Label("")
 
         # اطلاعات فید
         self["label_category"] = Label("")
@@ -258,7 +262,7 @@ class PomBiss(Screen):
         line = self.allfeeds[self.feedindex]
         parts = [p.strip() for p in line.split("=")]
 
-        while len(parts) < 8:
+        while len(parts) < 9:
             parts.append("")
 
         freq_parts = parts[0].split()
@@ -272,14 +276,18 @@ class PomBiss(Screen):
         sat_label = parts[3] if len(parts) > 3 else ""
         feed_id = parts[5] if len(parts) > 5 else ""
 
+        # بخش نهم: تاریخ و ساعت
+        feed_datetime = parts[8] if len(parts) > 8 else ""
+
         self["label_category"].setText("# " + title)
         self["label_satellite"].setText(sat_label if sat_label else sat_pos)
         self["label_frequency"].setText("Frequency: %s %s %s" % (freq, pol, sr))
         self["label_id"].setText("ID: %s" % feed_id)
         self["label_cw"].setText("CW: %s" % cw_key)
 
-        # شماره فید
+        # شماره فید و تاریخ
         self["feed_counter"].setText("[%d/%d]" % (self.feedindex + 1, len(self.allfeeds)))
+        self["feed_datetime"].setText(feed_datetime)
 
     def kyleft(self):
         if not self.allfeeds:
