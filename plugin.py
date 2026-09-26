@@ -78,6 +78,7 @@ class PomBissList(Screen):
     skinL = '''
 <screen name="PomBissList" position="center,center" size="1920,1080" title="PomBiss" flags="wfNoBorder" backgroundColor="#0a0a1a">
 
+    <!-- ============ عنوان بالا ============ -->
     <widget name="line_title_top" position="710,30" size="500,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
     <widget name="title" position="710,35" size="500,50"
@@ -86,16 +87,25 @@ class PomBissList(Screen):
     <widget name="line_title_bot" position="710,90" size="500,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
+    <!-- ============ کادر لیست (چپ) ============ -->
     <widget name="line_list_top" position="50,130" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
-    <widget name="list_header" position="180,138" size="400,40"
-            font="Regular;24" transparent="1" foregroundColor="#00ff00"
-            halign="center" valign="center" />
-    <widget name="today_date" position="600,138" size="230,40"
-            font="Regular;18" transparent="1" foregroundColor="#ffff00"
+
+    <!-- FEED LIST + تعداد فیدها + تاریخ -->
+    <widget name="list_header" position="60,138" size="200,40"
+            font="Regular;22" transparent="1" foregroundColor="#00ff00"
+            halign="left" valign="center" />
+    <widget name="feed_count" position="260,138" size="200,40"
+            font="Regular;20" transparent="1" foregroundColor="#ffaa00"
+            halign="left" valign="center" />
+    <widget name="today_date" position="580,138" size="250,40"
+            font="Regular;16" transparent="1" foregroundColor="#ffff00"
             halign="right" valign="center" />
+
     <widget name="line_list_bot" position="50,185" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
+
+    <!-- ============ 10 خط لیست ============ -->
 
     <widget name="feed_num_1" position="55,200" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
@@ -235,6 +245,7 @@ class PomBissList(Screen):
     <widget name="line_page_bot" position="50,880" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
+    <!-- ============ کادر جزئیات (راست) ============ -->
     <widget name="line_cat_top" position="860,280" size="1010,3"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
     <widget name="label_category" position="860,285" size="1010,90"
@@ -279,6 +290,7 @@ class PomBissList(Screen):
             font="Regular;20" transparent="1" foregroundColor="#00ffff"
             halign="center" valign="center" />
 
+    <!-- ============ دکمه‌ها ============ -->
     <widget name="btn_red_bg" position="1150,850" size="160,55"
             font="Regular;1" transparent="0" backgroundColor="#cc0000" />
     <widget name="key_red" position="1150,850" size="160,55"
@@ -297,8 +309,17 @@ class PomBissList(Screen):
             font="Regular;22" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" />
 
-    <widget name="nav_help" position="50,940" size="1820,40"
-            font="Regular;18" transparent="1" foregroundColor="#888888"
+    <!-- ============ @VUSOLO پایین ============ -->
+    <widget name="line_brand_top" position="660,960" size="600,3"
+            font="Regular;1" transparent="0" backgroundColor="#00aaff" />
+    <widget name="brand_label" position="660,970" size="600,50"
+            font="Regular;30" transparent="1" foregroundColor="#00ffff"
+            halign="center" valign="center" />
+    <widget name="line_brand_bot" position="660,1025" size="600,3"
+            font="Regular;1" transparent="0" backgroundColor="#00aaff" />
+
+    <widget name="nav_help" position="50,1040" size="1820,30"
+            font="Regular;14" transparent="1" foregroundColor="#666666"
             halign="center" valign="center" />
 
 </screen>'''
@@ -335,13 +356,18 @@ class PomBissList(Screen):
                      "line_sat_top", "line_sat_bot",
                      "line_freq_top", "line_freq_bot",
                      "line_id_top", "line_id_bot",
-                     "line_cw_top", "line_cw_bot"]:
+                     "line_cw_top", "line_cw_bot",
+                     "line_brand_top", "line_brand_bot"]:
             self[line] = Label("")
 
         self["title"] = Label("PomBiss")
         self["list_header"] = Label("FEED LIST")
+        self["feed_count"] = Label("")
         self["today_date"] = Label("")
         self["page_counter"] = Label("[1/1]")
+
+        # برند
+        self["brand_label"] = Label("@VUSOLO")
 
         for i in range(1, 11):
             self["feed_num_%d" % i] = Label("")
@@ -372,7 +398,10 @@ class PomBissList(Screen):
             log_debug("=== download_feeds START ===")
 
             self["label_category"].setText(_("Downloading..."))
-            self["today_date"].setText(time.strftime("%Y-%m-%d  %H:%M"))
+
+            # تاریخ + ساعت
+            now = time.strftime("%Y-%m-%d  %H:%M")
+            self["today_date"].setText("Updated: %s" % now)
 
             response = requests.get(FEEDS_URL, timeout=15)
 
@@ -399,7 +428,11 @@ class PomBissList(Screen):
             self.current_index = 0
             self.page_start = 0
 
-            log_debug("Loaded %d feeds" % len(lines))
+            # تعداد فیدها
+            total = len(self.allfeeds)
+            self["feed_count"].setText("[%d Feeds]" % total)
+
+            log_debug("Loaded %d feeds" % total)
 
             self.update_list()
             self.update_details()
@@ -543,78 +576,30 @@ class PomBissList(Screen):
         self.download_feeds()
 
     def feedscanall(self):
-        """باز کردن Satfinder با فرکانس فید"""
+        """باز کردن Satfinder"""
         if not self.allfeeds:
-            return
-
-        log_debug("=== feedscanall START ===")
-
-        try:
-            line = self.allfeeds[self.current_index]
-            parts = [p.strip() for p in line.split("=")]
-            freq_parts = parts[0].split()
-
-            if len(freq_parts) < 4:
-                log_debug("Not enough freq parts")
-                return
-
-            self.pending_freq = int(freq_parts[1])
-            self.pending_pol = freq_parts[2].upper()
-            self.pending_sr = int(freq_parts[3])
-
-            sat_pos = freq_parts[0]
-            log_debug("sat_pos raw: '%s'" % sat_pos)
-            try:
-                clean = sat_pos.replace("E", "").replace("W", "").replace("°", "").strip()
-                log_debug("sat_pos clean: '%s'" % clean)
-
-                if clean.isdigit() or (clean.startswith("-") and clean[1:].isdigit()):
-                    self.pending_orb = int(clean)
-                    log_debug("orb (pure number): %d" % self.pending_orb)
-                else:
-                    deg = float(clean)
-                    if "W" in sat_pos.upper():
-                        deg = -deg
-                    self.pending_orb = int(deg * 10)
-                    log_debug("deg: %f, orb: %d" % (deg, self.pending_orb))
-            except Exception as e:
-                log_debug("orb parse error: %s" % str(e))
-                self.pending_orb = 130
-
-            log_debug("Feed: %d %s %d @ orb %d" % (
-                self.pending_freq, self.pending_pol,
-                self.pending_sr, self.pending_orb))
-
-        except Exception as e:
-            log_debug("parse error: %s" % str(e))
             return
 
         try:
             from Plugins.SystemPlugins.Satfinder.plugin import SatfinderExtra
             self.session.open(SatfinderExtra)
-            log_debug("SatfinderExtra opened")
-            self.start_retune()
             return
-        except Exception as e:
-            log_debug("SatfinderExtra error: %s" % str(e))
+        except Exception:
+            pass
 
         try:
             from Plugins.SystemPlugins.Satfinder.plugin import SatfinderMain
             SatfinderMain(self.session)
-            log_debug("SatfinderMain opened")
-            self.start_retune()
             return
-        except Exception as e:
-            log_debug("SatfinderMain error: %s" % str(e))
+        except Exception:
+            pass
 
         try:
             from Plugins.SystemPlugins.Satfinder.plugin import Satfinder
             self.session.open(Satfinder)
-            log_debug("Satfinder opened")
-            self.start_retune()
             return
-        except Exception as e:
-            log_debug("Satfinder error: %s" % str(e))
+        except Exception:
+            pass
 
         self.session.open(
             MessageBox,
@@ -622,108 +607,6 @@ class PomBissList(Screen):
             MessageBox.TYPE_ERROR,
             timeout=10
         )
-
-    def start_retune(self):
-        """شروع تایمر برای retune"""
-        log_debug("Starting retune timer (2s)")
-        from enigma import eTimer
-        self.retune_timer = eTimer()
-        try:
-            self.retune_timer.callback.append(self.do_retune)
-        except:
-            self.retune_timer.timeout.connect(self.do_retune)
-        self.retune_timer.start(2000, True)
-
-    def do_retune(self):
-        """تنظیم Tuner با allocateRawChannel"""
-        try:
-            log_debug("=== do_retune START ===")
-
-            from enigma import eDVBFrontendParametersSatellite
-            from enigma import eDVBResourceManager
-
-            res_mgr = eDVBResourceManager.getInstance()
-            if res_mgr is None:
-                log_debug("res_mgr is None")
-                return
-
-            log_debug("Got res_mgr")
-
-            raw_channel = None
-            try:
-                raw_channel = res_mgr.allocateRawChannel(0)
-                log_debug("allocateRawChannel(0) OK")
-            except Exception as e:
-                log_debug("allocateRawChannel(0) error: %s" % str(e))
-                try:
-                    raw_channel = res_mgr.allocateRawChannel()
-                    log_debug("allocateRawChannel() OK")
-                except Exception as e2:
-                    log_debug("allocateRawChannel() error: %s" % str(e2))
-                    return
-
-            if raw_channel is None:
-                log_debug("raw_channel is None")
-                return
-
-            frontend = None
-            try:
-                frontend = raw_channel.getFrontend()
-                log_debug("raw_channel.getFrontend() OK")
-            except Exception as e:
-                log_debug("getFrontend error: %s" % str(e))
-
-            if frontend is None:
-                log_debug("frontend is None")
-                return
-
-            tp = eDVBFrontendParametersSatellite()
-            tp.frequency = self.pending_freq * 1000
-            tp.symbol_rate = self.pending_sr * 1000
-            tp.polarization = (
-                eDVBFrontendParametersSatellite.Polarisation_Horizontal
-                if self.pending_pol == "H"
-                else eDVBFrontendParametersSatellite.Polarisation_Vertical
-            )
-            tp.fec = eDVBFrontendParametersSatellite.FEC_Auto
-            tp.inversion = eDVBFrontendParametersSatellite.Inversion_Unknown
-            tp.system = eDVBFrontendParametersSatellite.System_DVB_S2
-            tp.modulation = eDVBFrontendParametersSatellite.Modulation_QPSK
-            tp.orbital_position = self.pending_orb
-
-            log_debug("Setting frontend: %d %s %d @ orb %d" % (
-                self.pending_freq, self.pending_pol,
-                self.pending_sr, self.pending_orb))
-
-            try:
-                frontend.setFrontend(tp)
-                log_debug("setFrontend OK")
-            except Exception as e:
-                log_debug("setFrontend error: %s" % str(e))
-                try:
-                    frontend.tune(tp)
-                    log_debug("tune OK")
-                except Exception as e2:
-                    log_debug("tune error: %s" % str(e2))
-
-            try:
-                res_mgr.freeRawChannel(raw_channel, 0)
-                log_debug("freeRawChannel OK")
-            except Exception as e:
-                log_debug("freeRawChannel error: %s" % str(e))
-
-            current = self.session.current_dialog
-            if current and hasattr(current, 'retuneSat'):
-                try:
-                    current.retuneSat()
-                    log_debug("retuneSat() after setFrontend OK")
-                except Exception as e:
-                    log_debug("retuneSat() error: %s" % str(e))
-
-        except Exception as e:
-            log_debug("do_retune error: %s" % str(e))
-            import traceback
-            log_debug("traceback: %s" % traceback.format_exc())
 
     def cancel(self):
         self.close()
