@@ -252,7 +252,7 @@ class PomBissList(Screen):
     <widget name="line_page_bot" position="50,880" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
-    <!-- ============ کادر جزئیات (راست) - وسط‌چین عمودی ============ -->
+    <!-- ============ کادر جزئیات (راست) ============ -->
     <widget name="line_cat_top" position="860,280" size="1010,3"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
     <widget name="label_category" position="860,285" size="1010,90"
@@ -411,7 +411,6 @@ class PomBissList(Screen):
                 self["label_category"].setText(_("No feeds available"))
                 return
 
-            # مرتب‌سازی بر اساس تاریخ (جدیدترین اول)
             def get_datetime_key(line):
                 parts = line.split("=")
                 if len(parts) > 8:
@@ -431,7 +430,7 @@ class PomBissList(Screen):
             self["label_category"].setText(_("Error: %s") % str(exc)[:60])
 
     def update_list(self):
-        """پر کردن ۱۰ خط لیست"""
+        """پر کردن ۱۰ خط لیست با رنگ‌بندی و انتخاب‌شده"""
         if not self.allfeeds:
             return
 
@@ -441,13 +440,6 @@ class PomBissList(Screen):
 
         self["page_counter"].setText("[%d/%d]" % (page_num, total_pages))
 
-        # ریست پس‌زمینه‌ها به مشکی
-        for i in range(1, 11):
-            try:
-                self["bg_%d" % i].instance.setBackgroundColor(0x0a0a1a)
-            except:
-                pass
-
         for i in range(1, 11):
             feed_idx = self.page_start + i - 1
 
@@ -455,7 +447,6 @@ class PomBissList(Screen):
                 line = self.allfeeds[feed_idx]
                 parts = line.split("=")
 
-                # پارس
                 freq_parts = parts[0].strip().split()
                 freq = freq_parts[1] if len(freq_parts) > 1 else ""
                 pol = freq_parts[2] if len(freq_parts) > 2 else ""
@@ -463,27 +454,37 @@ class PomBissList(Screen):
                 sat_label = parts[3].strip() if len(parts) > 3 else ""
                 feed_id = parts[5].strip() if len(parts) > 5 else ""
 
-                # شماره
-                self["feed_num_%d" % i].setText("[%d]" % (feed_idx + 1))
-                # ماهواره
-                self["feed_sat_%d" % i].setText(sat_label)
-                # فرکانس
-                self["feed_freq_%d" % i].setText("%s %s" % (freq, pol))
-                # ID
-                self["feed_id_%d" % i].setText(feed_id)
+                if feed_idx == self.current_index:
+                    self["feed_num_%d" % i].setText("▶ [%d]" % (feed_idx + 1))
+                    self["feed_sat_%d" % i].setText(sat_label)
+                    self["feed_freq_%d" % i].setText("%s %s" % (freq, pol))
+                    self["feed_id_%d" % i].setText(feed_id)
+
+                    try:
+                        self["feed_num_%d" % i].instance.setForegroundColor(0xffff00)
+                        self["feed_sat_%d" % i].instance.setForegroundColor(0xffff00)
+                        self["feed_freq_%d" % i].instance.setForegroundColor(0xffff00)
+                        self["feed_id_%d" % i].instance.setForegroundColor(0xffff00)
+                    except:
+                        pass
+                else:
+                    self["feed_num_%d" % i].setText("  [%d]" % (feed_idx + 1))
+                    self["feed_sat_%d" % i].setText(sat_label)
+                    self["feed_freq_%d" % i].setText("%s %s" % (freq, pol))
+                    self["feed_id_%d" % i].setText(feed_id)
+
+                    try:
+                        self["feed_num_%d" % i].instance.setForegroundColor(0xffff00)
+                        self["feed_sat_%d" % i].instance.setForegroundColor(0x00ff88)
+                        self["feed_freq_%d" % i].instance.setForegroundColor(0x00aaff)
+                        self["feed_id_%d" % i].instance.setForegroundColor(0xffffff)
+                    except:
+                        pass
             else:
                 self["feed_num_%d" % i].setText("")
                 self["feed_sat_%d" % i].setText("")
                 self["feed_freq_%d" % i].setText("")
                 self["feed_id_%d" % i].setText("")
-
-        # رنگ پس‌زمینه خط انتخاب‌شده (زرد کم‌رنگ)
-        row_in_page = self.current_index - self.page_start
-        if 0 <= row_in_page < 10:
-            try:
-                self["bg_%d" % (row_in_page + 1)].instance.setBackgroundColor(0x444400)
-            except:
-                pass
 
     def update_details(self):
         """نمایش جزئیات فید انتخاب‌شده"""
@@ -587,18 +588,9 @@ class PomBissList(Screen):
         self.close()
 
 
-# ============================================================
-# MAIN FUNCTION
-# ============================================================
-
 def main(session, **kwargs):
-    """تابع اجرای پلاگین"""
     session.open(PomBissList)
 
-
-# ============================================================
-# PLUGIN DESCRIPTOR
-# ============================================================
 
 def Plugins(**kwargs):
     return PluginDescriptor(
