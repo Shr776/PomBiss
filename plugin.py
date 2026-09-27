@@ -79,6 +79,18 @@ class PomBissList(Screen):
     skinL = '''
 <screen name="PomBissList" position="center,center" size="1920,1080" title="PomBiss" flags="wfNoBorder" backgroundColor="#0a0a1a">
 
+    <!-- ============ ساعت و تاریخ (بالا راست) ============ -->
+    <widget source="global.CurrentTime" render="Label" position="1600,30" size="300,55"
+            font="Regular;40" transparent="1" foregroundColor="#ffffff"
+            halign="right" valign="center">
+        <convert type="ClockToText">Format:%H:%M</convert>
+    </widget>
+    <widget source="global.CurrentTime" render="Label" position="1500,85" size="400,40"
+            font="Regular;22" transparent="1" foregroundColor="#00ffff"
+            halign="right" valign="center">
+        <convert type="ClockToText">Format:%A, %d %B %Y</convert>
+    </widget>
+
     <!-- ============ عنوان بالا (لوگو) ============ -->
     <widget name="line_title_top" position="710,30" size="500,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
@@ -98,8 +110,8 @@ class PomBissList(Screen):
     <widget name="feed_count" position="260,138" size="200,40"
             font="Regular;20" transparent="1" foregroundColor="#ffaa00"
             halign="left" valign="center" />
-    <widget name="today_date" position="580,138" size="250,40"
-            font="Regular;16" transparent="1" foregroundColor="#ffff00"
+    <widget name="header_text" position="480,138" size="350,40"
+            font="Regular;20" transparent="1" foregroundColor="#00ffff"
             halign="right" valign="center" />
 
     <widget name="line_list_bot" position="50,185" size="780,3"
@@ -365,7 +377,7 @@ class PomBissList(Screen):
 
         self["list_header"] = Label("FEED LIST")
         self["feed_count"] = Label("")
-        self["today_date"] = Label("")
+        self["header_text"] = Label("PomBiss Feed Viewer")
         self["page_counter"] = Label("[1/1]")
 
         self["brand_label"] = Label("@VUSOLO")
@@ -399,9 +411,6 @@ class PomBissList(Screen):
             log_debug("=== download_feeds START ===")
 
             self["label_category"].setText(_("Downloading..."))
-
-            now = time.strftime("%Y-%m-%d  %H:%M")
-            self["today_date"].setText("Updated: %s" % now)
 
             response = requests.get(FEEDS_URL, timeout=15)
 
