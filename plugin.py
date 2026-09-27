@@ -16,6 +16,7 @@ from Plugins.Plugin import PluginDescriptor
 from Screens.Screen import Screen
 from Screens.MessageBox import MessageBox
 from Components.Label import Label
+from Components.Pixmap import Pixmap
 from Components.ActionMap import ActionMap
 from enigma import getDesktop
 from Tools.Directories import resolveFilename, SCOPE_PLUGINS
@@ -78,13 +79,13 @@ class PomBissList(Screen):
     skinL = '''
 <screen name="PomBissList" position="center,center" size="1920,1080" title="PomBiss" flags="wfNoBorder" backgroundColor="#0a0a1a">
 
-    <!-- ============ عنوان بالا ============ -->
+    <!-- ============ عنوان بالا (لوگو) ============ -->
     <widget name="line_title_top" position="710,30" size="500,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
-    <widget name="title" position="710,35" size="500,50"
-            font="Regular;38" transparent="1" foregroundColor="#00ffff"
-            halign="center" valign="center" />
-    <widget name="line_title_bot" position="710,90" size="500,3"
+    <ePixmap name="title_logo" position="860,25" size="200,80"
+             pixmap="''' + plugin_dir + '''/PomBiss_logo.png"
+             alphatest="on" zPosition="1" />
+    <widget name="line_title_bot" position="710,120" size="500,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
     <!-- ============ کادر لیست (چپ) ============ -->
@@ -359,7 +360,9 @@ class PomBissList(Screen):
                      "line_brand_top", "line_brand_bot"]:
             self[line] = Label("")
 
-        self["title"] = Label("PomBiss")
+        # لوگو
+        self["title_logo"] = Pixmap()
+
         self["list_header"] = Label("FEED LIST")
         self["feed_count"] = Label("")
         self["today_date"] = Label("")
