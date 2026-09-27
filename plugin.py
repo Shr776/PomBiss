@@ -617,6 +617,6 @@ def Plugins(**kwargs):
         name="PomBiss",
         description="Sports Feed Viewer",
         where=PluginDescriptor.WHERE_PLUGINMENU,
-        icon="FSSLOGO.png",
+        icon="PomBiss_logo.png",
         fnc=main
     )
