@@ -21,7 +21,7 @@ from enigma import eTimer
 # ============================================================
 # تنظیمات - اینجا رو با هر آپدیت دستی عوض کن
 # ============================================================
-PLUGIN_VERSION = "1.1"
+PLUGIN_VERSION = "1.5"
 
 VERSION_URL = "https://raw.githubusercontent.com/Shr776/PomBiss/main/version.txt"
 INSTALLER_URL = "https://raw.githubusercontent.com/Shr776/PomBiss/main/installer.sh"
