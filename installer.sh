@@ -1,11 +1,11 @@
 #!/bin/sh
 # ============================================================
-# PomBiss Plugin Installer v1.5
+# PomBiss Plugin Installer v1.6
 # Sports Feed Viewer for Enigma2
 # GitHub: https://github.com/Shr776/PomBiss
 # ============================================================
 
-VERSION="1.5"
+VERSION="1.6"
 PLUGIN_PATH="/usr/lib/enigma2/python/Plugins/Extensions/PomBiss"
 REPO_URL="https://github.com/Shr776/PomBiss/archive/refs/heads/main.zip"
 VERSION_URL="https://raw.githubusercontent.com/Shr776/PomBiss/main/version.txt"
@@ -14,6 +14,7 @@ ZIP_FILE="$TEMP_DIR/pombiss.zip"
 BACKUP_DIR="/tmp/pombiss_backup"
 LOG_FILE="/tmp/pombiss_install.log"
 RESTART_FLAG="/tmp/pombiss_need_restart"
+FROM_PLUGIN_FLAG="/tmp/pombiss_from_plugin"
 
 # ============================================================
 # log function
@@ -215,7 +216,7 @@ echo ""
 sleep 1
 
 # ============================================================
-# Step 5: Update versions (IMPORTANT!)
+# Step 5: Update versions
 # ============================================================
 echo "============================================================"
 echo "  [5/6] Updating version info..."
@@ -226,7 +227,7 @@ log "Step 5/6: Update version to $NEW_VERSION"
 echo "$NEW_VERSION" > "$PLUGIN_PATH/version.txt"
 echo "OK: version.txt = $NEW_VERSION"
 
-# 2) نسخه داخل updater.py (خیلی مهم!)
+# 2) نسخه داخل updater.py
 if [ -f "$PLUGIN_PATH/updater.py" ]; then
     sed -i "s/^PLUGIN_VERSION = .*/PLUGIN_VERSION = \"$NEW_VERSION\"/" "$PLUGIN_PATH/updater.py"
     echo "OK: PLUGIN_VERSION = $NEW_VERSION (in updater.py)"
@@ -235,14 +236,12 @@ else
     echo "WARNING: updater.py not found!"
 fi
 
-# 3) چک نهایی
 echo ""
 echo "Verifying:"
 echo "  Local version.txt:  $(cat $PLUGIN_PATH/version.txt 2>/dev/null)"
 echo "  updater.py version: $(grep '^PLUGIN_VERSION' $PLUGIN_PATH/updater.py 2>/dev/null)"
 echo ""
 
-# permissions
 chmod -R 755 "$PLUGIN_PATH"
 echo "OK: Permissions set (755)"
 echo "Progress: [########################] 90%"
@@ -279,16 +278,36 @@ echo ""
 echo "Version installed: $NEW_VERSION"
 echo ""
 
-# ساخت flag برای ریستارت توسط پلاگین
-touch "$RESTART_FLAG"
-log "Restart flag created: $RESTART_FLAG"
+# ============================================================
+# Restart decision: from plugin or from telnet?
+# ============================================================
+if [ -f "$FROM_PLUGIN_FLAG" ]; then
+    # اجرا از داخل پلاگین → فقط flag بساز
+    rm -f "$FROM_PLUGIN_FLAG"
+    touch "$RESTART_FLAG"
+    log "Restart flag created (from plugin)"
 
-echo "============================================================"
-echo "  Update successful!"
-echo "  Enigma2 will restart automatically..."
-echo "============================================================"
-echo ""
+    echo "============================================================"
+    echo "  Update successful!"
+    echo "  Returning to plugin for restart..."
+    echo "============================================================"
+    echo ""
 
-sleep 3
+    sleep 2
+    exit 0
+else
+    # اجرا از تلنت → خودش ریستارت کن
+    echo "============================================================"
+    echo "  Update successful!"
+    echo "  Restarting Enigma2..."
+    echo "============================================================"
+    echo ""
 
-exit 0
+    sleep 3
+
+    init 4
+    sleep 3
+    init 3
+
+    exit 0
+fi
