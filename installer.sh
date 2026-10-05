@@ -1,11 +1,11 @@
 #!/bin/sh
 # ============================================================
-# PomBiss Plugin Installer v1.4
+# PomBiss Plugin Installer v1.5
 # Sports Feed Viewer for Enigma2
 # GitHub: https://github.com/Shr776/PomBiss
 # ============================================================
 
-VERSION="1.4"
+VERSION="1.5"
 PLUGIN_PATH="/usr/lib/enigma2/python/Plugins/Extensions/PomBiss"
 REPO_URL="https://github.com/Shr776/PomBiss/archive/refs/heads/main.zip"
 VERSION_URL="https://raw.githubusercontent.com/Shr776/PomBiss/main/version.txt"
@@ -45,7 +45,6 @@ if [ "$(id -u)" != "0" ]; then
     exit 1
 fi
 echo "OK: Root check"
-echo "OK: wget check"
 
 # Check wget
 if ! command -v wget > /dev/null 2>&1; then
@@ -53,6 +52,7 @@ if ! command -v wget > /dev/null 2>&1; then
     echo "ERROR: wget not installed!"
     exit 1
 fi
+echo "OK: wget check"
 
 # Check unzip
 if ! command -v unzip > /dev/null 2>&1; then
@@ -226,9 +226,8 @@ log "Step 5/6: Update version to $NEW_VERSION"
 echo "$NEW_VERSION" > "$PLUGIN_PATH/version.txt"
 echo "OK: version.txt = $NEW_VERSION"
 
-# ⭐ 2) نسخه داخل updater.py (خیلی مهم!)
+# 2) نسخه داخل updater.py (خیلی مهم!)
 if [ -f "$PLUGIN_PATH/updater.py" ]; then
-    # با sed خط PLUGIN_VERSION رو عوض می‌کنیم
     sed -i "s/^PLUGIN_VERSION = .*/PLUGIN_VERSION = \"$NEW_VERSION\"/" "$PLUGIN_PATH/updater.py"
     echo "OK: PLUGIN_VERSION = $NEW_VERSION (in updater.py)"
     log "  PLUGIN_VERSION updated to $NEW_VERSION"
