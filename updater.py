@@ -21,9 +21,6 @@ from Screens.Standby import TryQuitMainloop
 from enigma import eTimer
 
 
-# ============================================================
-# تنظیمات
-# ============================================================
 PLUGIN_VERSION = "1.7"
 
 VERSION_URL = "https://raw.githubusercontent.com/Shr776/PomBiss/main/version.txt"
@@ -37,9 +34,6 @@ FROM_PLUGIN_FLAG = "/tmp/pombiss_from_plugin"
 _active_timers = []
 
 
-# ============================================================
-# لاگ
-# ============================================================
 def log_debug(msg):
     try:
         with open("/tmp/PomBiss_Update.log", "a") as f:
@@ -48,9 +42,6 @@ def log_debug(msg):
         pass
 
 
-# ============================================================
-# دانلود URL
-# ============================================================
 def _fetch_url(url, timeout=10):
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "PomBiss"})
@@ -69,9 +60,6 @@ def _fetch_url(url, timeout=10):
         return None
 
 
-# ============================================================
-# مقایسه نسخه‌ها
-# ============================================================
 def _is_newer(latest, current):
     try:
         l = [int(x) for x in str(latest).split(".")]
@@ -89,9 +77,6 @@ def get_version():
     return PLUGIN_VERSION
 
 
-# ============================================================
-# چک آپدیت
-# ============================================================
 def check_for_update(session, silent_if_no_update=True, on_no_update=None):
     log_debug("=== checking for update (current=%s) ===" % PLUGIN_VERSION)
 
@@ -147,9 +132,6 @@ def check_for_update(session, silent_if_no_update=True, on_no_update=None):
             on_no_update()
 
 
-# ============================================================
-# اجرای آپدیت (با Console)
-# ============================================================
 def _do_update(session):
     log_debug("=== UPDATE STARTED ===")
 
@@ -159,7 +141,6 @@ def _do_update(session):
     except:
         pass
 
-    # نشونه‌گذاری برای installer که از پلاگین اجرا می‌شه
     try:
         open(FROM_PLUGIN_FLAG, "w").close()
         log_debug("Marker created: %s" % FROM_PLUGIN_FLAG)
@@ -195,9 +176,6 @@ def _do_update(session):
         )
 
 
-# ============================================================
-# چک flag و ریستارت امن
-# ============================================================
 def _check_restart_flag(session):
     log_debug("=== checking restart flag ===")
 
