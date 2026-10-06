@@ -1,11 +1,11 @@
 #!/bin/sh
 # ============================================================
-# PomBiss Plugin Installer v1.6
+# PomBiss Plugin Installer v1.7
 # Sports Feed Viewer for Enigma2
 # GitHub: https://github.com/Shr776/PomBiss
 # ============================================================
 
-VERSION="1.6"
+VERSION="1.7"
 PLUGIN_PATH="/usr/lib/enigma2/python/Plugins/Extensions/PomBiss"
 REPO_URL="https://github.com/Shr776/PomBiss/archive/refs/heads/main.zip"
 VERSION_URL="https://raw.githubusercontent.com/Shr776/PomBiss/main/version.txt"
