@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-PomBiss Updater Module v1.7
+PomBiss Updater Module v1.8
 - Uses Console screen to show installation progress live
 - Runs installer via wget | sh (like RaedQuickSignal)
 - Creates marker file /tmp/pombiss_from_plugin so installer knows source
