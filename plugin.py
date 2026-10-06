@@ -5,7 +5,8 @@ PomBiss Plugin for Enigma2
 Sports Feed Viewer - Neon Dual Panel Theme
 + Clear PomBiss Keys feature
 + User Registration System (Google Sheets)
-+ Auto Update System
++ Auto Update System with Console progress
++ Contact Us screen (MENU button) - 8 blocks with red lines
 """
 
 from __future__ import print_function
@@ -18,10 +19,11 @@ except:
 from Plugins.Plugin import PluginDescriptor
 from Screens.Screen import Screen
 from Screens.MessageBox import MessageBox
+from Screens.Standby import TryQuitMainloop
 from Components.Label import Label
 from Components.Pixmap import Pixmap
 from Components.ActionMap import ActionMap
-from enigma import getDesktop
+from enigma import getDesktop, eTimer
 from Tools.Directories import resolveFilename, SCOPE_PLUGINS
 
 import requests
@@ -64,7 +66,6 @@ if getDesktop(0).size().width() > 1800:
 
 
 def log_debug(msg):
-    """نوشتن لاگ توی فایل"""
     try:
         with open("/tmp/PomBissSatfinder.log", "a") as f:
             f.write("[PomBiss] %s\n" % msg)
@@ -72,15 +73,16 @@ def log_debug(msg):
         pass
 
 
-# ⭐ رفرنس global به instance فعال PomBissList
 _pombiss_list_instance = None
+_restart_timer = None
+
+RESTART_FLAG = "/tmp/pombiss_need_restart"
 
 
 # ============================================================
 # Clear PomBiss Keys - توابع
 # ============================================================
 def _find_softcam_key_for_clear():
-    """پیدا کردن مسیر SoftCam.Key"""
     paths = [
         "/etc/tuxbox/config/oscam-emu",
         "/etc/tuxbox/config/oscam-trunk",
@@ -119,7 +121,6 @@ def _find_softcam_key_for_clear():
 
 
 def _restart_emulator_after_clear():
-    """ریستارت امولاتور"""
     emu_keywords = ["oscam", "ncam", "cccam", "mgcamd", "gbox",
                     "wicardd", "camd", "emu", "cam"]
 
@@ -209,9 +210,6 @@ def _restart_emulator_after_clear():
 
 
 def _clear_pombiss_keys():
-    """
-    پاک کردن خطوطی که با "; Edited by PomBiss" یا "added by LIVE FEED" تموم می‌شن
-    """
     softcam_path = _find_softcam_key_for_clear()
 
     if not os.path.exists(softcam_path):
@@ -251,11 +249,270 @@ def _clear_pombiss_keys():
         return False, 0, "Error: %s" % str(e)
 
 
-# اصلاح موقعیت‌های ناقص
 POSITION_FIX = {
     "31": "Eutelsat 3C ( 3.1E )",
     "216": "Eutelsat 21C ( 21.6E )",
 }
+
+
+# ============================================================
+# CONTACT US SCREEN - ۸ بلاک با خطوط قرمز
+# ============================================================
+
+class PomBissContactScreen(Screen):
+    """صفحه تماس - ۸ بلاک، خطوط قرمز، فونت متوسط"""
+
+    skin = '''
+<screen name="PomBissContact" position="center,center" size="1400,1080"
+        title="PomBiss Contact" flags="wfNoBorder" backgroundColor="#0a0a1a">
+
+    <!-- خط بالایی (آبی، قطور) -->
+    <widget name="line_top" position="50,15" size="1300,5"
+            font="Regular;1" transparent="0" backgroundColor="#00aaff" />
+
+    <!-- تیتر اصلی (سبز روشن) -->
+    <widget name="title" position="0,25" size="1400,60"
+            font="Regular;36" transparent="1" foregroundColor="#00ff88"
+            halign="center" valign="center" />
+
+    <!-- خط زیر تیتر (آبی، قطور) -->
+    <widget name="line_title" position="50,95" size="1300,5"
+            font="Regular;1" transparent="0" backgroundColor="#00aaff" />
+
+    <!-- DEVELOPER -->
+    <widget name="dev_label" position="0,110" size="1400,38"
+            font="Regular;24" transparent="1" foregroundColor="#ffff00"
+            halign="center" valign="center" />
+    <widget name="dev_id" position="0,152" size="1400,34"
+            font="Regular;26" transparent="1" foregroundColor="#00ffff"
+            halign="center" valign="center" />
+    <widget name="dev_url" position="0,190" size="1400,30"
+            font="Regular;20" transparent="1" foregroundColor="#00aaff"
+            halign="center" valign="center" />
+
+    <!-- خط جداکننده (قرمز، قطور) -->
+    <widget name="line1" position="250,225" size="900,5"
+            font="Regular;1" transparent="0" backgroundColor="#ff0000" />
+
+    <!-- MAIN CHANNEL -->
+    <widget name="main_label" position="0,235" size="1400,38"
+            font="Regular;24" transparent="1" foregroundColor="#ffff00"
+            halign="center" valign="center" />
+    <widget name="main_id" position="0,277" size="1400,34"
+            font="Regular;26" transparent="1" foregroundColor="#00ffff"
+            halign="center" valign="center" />
+    <widget name="main_url" position="0,315" size="1400,30"
+            font="Regular;20" transparent="1" foregroundColor="#00aaff"
+            halign="center" valign="center" />
+
+    <widget name="line2" position="250,350" size="900,5"
+            font="Regular;1" transparent="0" backgroundColor="#ff0000" />
+
+    <!-- SUPPORT GROUP -->
+    <widget name="sup_label" position="0,360" size="1400,38"
+            font="Regular;24" transparent="1" foregroundColor="#ffff00"
+            halign="center" valign="center" />
+    <widget name="sup_id" position="0,402" size="1400,34"
+            font="Regular;26" transparent="1" foregroundColor="#00ffff"
+            halign="center" valign="center" />
+    <widget name="sup_url" position="0,440" size="1400,30"
+            font="Regular;20" transparent="1" foregroundColor="#00aaff"
+            halign="center" valign="center" />
+
+    <widget name="line3" position="250,475" size="900,5"
+            font="Regular;1" transparent="0" backgroundColor="#ff0000" />
+
+    <!-- FEEDS CHANNELS -->
+    <widget name="feed_label" position="0,485" size="1400,38"
+            font="Regular;24" transparent="1" foregroundColor="#ffff00"
+            halign="center" valign="center" />
+    <widget name="feed1_id" position="0,527" size="1400,34"
+            font="Regular;26" transparent="1" foregroundColor="#00ffff"
+            halign="center" valign="center" />
+    <widget name="feed1_url" position="0,565" size="1400,30"
+            font="Regular;20" transparent="1" foregroundColor="#00aaff"
+            halign="center" valign="center" />
+    <widget name="feed2_id" position="0,598" size="1400,34"
+            font="Regular;26" transparent="1" foregroundColor="#00ffff"
+            halign="center" valign="center" />
+    <widget name="feed2_url" position="0,636" size="1400,30"
+            font="Regular;20" transparent="1" foregroundColor="#00aaff"
+            halign="center" valign="center" />
+
+    <widget name="line4" position="250,670" size="900,5"
+            font="Regular;1" transparent="0" backgroundColor="#ff0000" />
+
+    <!-- YOUTUBE -->
+    <widget name="yt_label" position="0,680" size="1400,38"
+            font="Regular;24" transparent="1" foregroundColor="#ffff00"
+            halign="center" valign="center" />
+    <widget name="yt_id" position="0,722" size="1400,34"
+            font="Regular;26" transparent="1" foregroundColor="#00ffff"
+            halign="center" valign="center" />
+    <widget name="yt_url" position="0,760" size="1400,30"
+            font="Regular;20" transparent="1" foregroundColor="#00aaff"
+            halign="center" valign="center" />
+
+    <widget name="line5" position="250,795" size="900,5"
+            font="Regular;1" transparent="0" backgroundColor="#ff0000" />
+
+    <!-- GITHUB -->
+    <widget name="gh_label" position="0,805" size="1400,38"
+            font="Regular;24" transparent="1" foregroundColor="#ffff00"
+            halign="center" valign="center" />
+    <widget name="gh_id" position="0,847" size="1400,34"
+            font="Regular;26" transparent="1" foregroundColor="#00ffff"
+            halign="center" valign="center" />
+    <widget name="gh_url" position="0,885" size="1400,30"
+            font="Regular;20" transparent="1" foregroundColor="#00aaff"
+            halign="center" valign="center" />
+
+    <!-- خط پایینی (آبی، قطور) -->
+    <widget name="line_bot" position="50,925" size="1300,5"
+            font="Regular;1" transparent="0" backgroundColor="#00aaff" />
+
+    <!-- راهنما -->
+    <widget name="help" position="0,935" size="1400,30"
+            font="Regular;18" transparent="1" foregroundColor="#dddddd"
+            halign="center" valign="center" />
+
+</screen>'''
+
+    def __init__(self, session):
+        Screen.__init__(self, session)
+        self.session = session
+
+        # ⭐ ۸ لینک (YouTube و GitHub جدا)
+        self.links = [
+            "https://t.me/Shr776",                 # 0 - DEV
+            "https://t.me/VuSolo",                 # 1 - MAIN
+            "https://t.me/PomSat",                 # 2 - SUPPORT
+            "https://t.me/PomFeed",                # 3 - FEED1
+            "https://t.me/FeedHunter",             # 4 - FEED2
+            "https://www.youtube.com/@VUSOLO",     # 5 - YOUTUBE
+            "https://github.com/Shr776/PomBiss",   # 6 - GITHUB
+        ]
+        self.current_index = 0
+
+        self["line_top"] = Label("")
+        self["title"] = Label("📞 PomBiss Contact Us")
+        self["line_title"] = Label("")
+
+        self["dev_label"] = Label("👤 DEVELOPER")
+        self["dev_id"] = Label("@Shr776")
+        self["dev_url"] = Label("https://t.me/Shr776")
+
+        self["line1"] = Label("")
+
+        self["main_label"] = Label("📢 MAIN CHANNEL")
+        self["main_id"] = Label("@VuSolo")
+        self["main_url"] = Label("https://t.me/VuSolo")
+
+        self["line2"] = Label("")
+
+        self["sup_label"] = Label("💬 SUPPORT GROUP")
+        self["sup_id"] = Label("@PomSat")
+        self["sup_url"] = Label("https://t.me/PomSat")
+
+        self["line3"] = Label("")
+
+        self["feed_label"] = Label("📡 FEEDS CHANNELS")
+        self["feed1_id"] = Label("@PomFeed")
+        self["feed1_url"] = Label("https://t.me/PomFeed")
+        self["feed2_id"] = Label("@FeedHunter")
+        self["feed2_url"] = Label("https://t.me/FeedHunter")
+
+        self["line4"] = Label("")
+
+        self["yt_label"] = Label("🎬 YOUTUBE")
+        self["yt_id"] = Label("@VUSOLO")
+        self["yt_url"] = Label("https://www.youtube.com/@VUSOLO")
+
+        self["line5"] = Label("")
+
+        self["gh_label"] = Label("💻 GITHUB")
+        self["gh_id"] = Label("@Shr776")
+        self["gh_url"] = Label("https://github.com/Shr776/PomBiss")
+
+        self["line_bot"] = Label("")
+        self["help"] = Label("Link 1/7  |  GREEN: Copy  |  RED: Close")
+
+        self["actions"] = ActionMap(
+            ["OkCancelActions", "ColorActions", "DirectionActions", "MenuActions"],
+            {
+                "ok": self.copy_current,
+                "green": self.copy_current,
+                "cancel": self.close,
+                "red": self.close,
+                "menu": self.close,
+                "up": self.prev_link,
+                "down": self.next_link,
+            },
+            -1
+        )
+
+        self._highlight_current()
+
+    def _highlight_current(self):
+        reset_titles = [
+            ("dev_label",  "👤 DEVELOPER"),
+            ("main_label", "📢 MAIN CHANNEL"),
+            ("sup_label",  "💬 SUPPORT GROUP"),
+            ("feed_label", "📡 FEEDS CHANNELS"),
+            ("yt_label",   "🎬 YOUTUBE"),
+            ("gh_label",   "💻 GITHUB"),
+        ]
+        for key, text in reset_titles:
+            try:
+                self[key].setText(text)
+            except:
+                pass
+
+        current_title_map = {
+            0: ("dev_label",  "👤 DEVELOPER"),
+            1: ("main_label", "📢 MAIN CHANNEL"),
+            2: ("sup_label",  "💬 SUPPORT GROUP"),
+            3: ("feed_label", "📡 FEEDS CHANNELS"),
+            4: ("feed_label", "📡 FEEDS CHANNELS"),
+            5: ("yt_label",   "🎬 YOUTUBE"),
+            6: ("gh_label",   "💻 GITHUB"),
+        }
+
+        try:
+            key, text = current_title_map[self.current_index]
+            self[key].setText("▶ " + text + " ◀")
+        except:
+            pass
+
+        self["help"].setText("Link %d/7  |  GREEN: Copy  |  RED: Close" % (self.current_index + 1))
+
+    def prev_link(self):
+        self.current_index = (self.current_index - 1) % len(self.links)
+        self._highlight_current()
+
+    def next_link(self):
+        self.current_index = (self.current_index + 1) % len(self.links)
+        self._highlight_current()
+
+    def copy_current(self):
+        try:
+            link = self.links[self.current_index]
+            with open("/tmp/.pombiss_clipboard", "w") as f:
+                f.write(link)
+
+            self.session.open(
+                MessageBox,
+                "✅ Link copied!\n\n%s" % link,
+                MessageBox.TYPE_INFO,
+                timeout=3
+            )
+        except Exception as e:
+            self.session.open(
+                MessageBox,
+                "❌ Copy error:\n%s" % str(e),
+                MessageBox.TYPE_ERROR,
+                timeout=4
+            )
 
 
 # ============================================================
@@ -265,13 +522,11 @@ POSITION_FIX = {
 class PomBissList(Screen):
     """صفحه لیست فیدها - دو پنل"""
 
-    # ⭐ نسخه پلاگین از updater.py خونده می‌شه
     PLUGIN_VERSION = updater.get_version()
 
     skinL = '''
 <screen name="PomBissList" position="center,center" size="1920,1080" title="PomBiss" flags="wfNoBorder" backgroundColor="#0a0a1a">
 
-    <!-- ============ ساعت + تاریخ (بالا راست) - هر دو وسط‌چین روی هم ============ -->
     <widget source="global.CurrentTime" render="Label" position="1500,30" size="400,55"
             font="Regular;40" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center">
@@ -283,7 +538,6 @@ class PomBissList(Screen):
         <convert type="ClockToText">Format:%A, %d %B %Y</convert>
     </widget>
 
-    <!-- ============ عنوان بالا (لوگو) ============ -->
     <widget name="line_title_top" position="710,30" size="500,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
     <ePixmap name="title_logo" position="860,25" size="200,80"
@@ -292,12 +546,10 @@ class PomBissList(Screen):
     <widget name="line_title_bot" position="710,120" size="500,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
-    <!-- ⭐ نسخه پلاگین - بالای خط سبز لیست، وسط‌چین روی کادر FEED LIST -->
     <widget name="version_label" position="50,98" size="780,30"
             font="Regular;18" transparent="1" foregroundColor="#00ffff"
             halign="center" valign="center" />
 
-    <!-- ============ کادر لیست (چپ) ============ -->
     <widget name="line_list_top" position="50,130" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
@@ -313,8 +565,6 @@ class PomBissList(Screen):
 
     <widget name="line_list_bot" position="50,185" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
-
-    <!-- ============ 10 خط لیست ============ -->
 
     <widget name="feed_num_1" position="55,200" size="120,55"
             font="Regular;40" transparent="1" foregroundColor="#ffff00"
@@ -454,7 +704,6 @@ class PomBissList(Screen):
     <widget name="line_page_bot" position="50,880" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
-    <!-- ============ کادر جزئیات (راست) ============ -->
     <widget name="line_cat_top" position="860,280" size="1010,3"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
     <widget name="label_category" position="860,285" size="1010,90"
@@ -499,39 +748,30 @@ class PomBissList(Screen):
             font="Regular;20" transparent="1" foregroundColor="#00ffff"
             halign="center" valign="center" />
 
-    <!-- ============ دکمه‌ها: ترتیب جدید ============
-         از چپ به راست: SCAN (سبز) | Clear (آبی) | Update (زرد) | EXIT (قرمز)
-    -->
-
-    <!-- دکمه ۱: SCAN (سبز) -->
     <widget name="btn_green_bg" position="970,850" size="160,55"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
     <widget name="key_green" position="970,850" size="160,55"
             font="Regular;28" transparent="1" foregroundColor="#000000"
             halign="center" valign="center" />
 
-    <!-- دکمه ۲: Clear (آبی) -->
     <widget name="btn_blue_bg" position="1150,850" size="160,55"
             font="Regular;1" transparent="0" backgroundColor="#00ccff" />
     <widget name="key_blue" position="1150,850" size="160,55"
             font="Regular;28" transparent="1" foregroundColor="#000000"
             halign="center" valign="center" />
 
-    <!-- دکمه ۳: Update (زرد) -->
     <widget name="btn_yellow_bg" position="1330,850" size="160,55"
             font="Regular;1" transparent="0" backgroundColor="#ffff00" />
     <widget name="key_yellow" position="1330,850" size="160,55"
             font="Regular;28" transparent="1" foregroundColor="#000000"
             halign="center" valign="center" />
 
-    <!-- دکمه ۴: EXIT (قرمز) -->
     <widget name="btn_red_bg" position="1510,850" size="160,55"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
     <widget name="key_red" position="1510,850" size="160,55"
             font="Regular;28" transparent="1" foregroundColor="#000000"
             halign="center" valign="center" />
 
-    <!-- ============ @VUSOLO پایین ============ -->
     <widget name="line_brand_top" position="660,960" size="600,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
     <widget name="brand_label" position="660,970" size="600,50"
@@ -540,7 +780,6 @@ class PomBissList(Screen):
     <widget name="line_brand_bot" position="660,1025" size="600,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
-    <!-- ============ راهنما (فونت درشت + رنگ روشن) ============ -->
     <widget name="nav_help" position="50,1040" size="1820,38"
             font="Regular;22" transparent="1" foregroundColor="#dddddd"
             halign="center" valign="center" />
@@ -560,9 +799,9 @@ class PomBissList(Screen):
         self.page_start = 0
         self.feeds_per_page = 10
 
-        # ⭐ ActionMap: سبز = SCAN، آبی = Clear، زرد = Update، قرمز = EXIT
         self["myActionsMap"] = ActionMap(
-            ["DirectionActions", "ColorActions", "OkCancelActions"],
+            ["DirectionActions", "ColorActions", "OkCancelActions",
+             "MenuActions", "HelpActions"],
             {
                 "up": self.keyUp,
                 "down": self.keyDown,
@@ -574,8 +813,12 @@ class PomBissList(Screen):
                 "yellow": self.update_plugin,
                 "red": self.cancel,
                 "cancel": self.cancel,
+
+                "menu": self.show_contact,
+                "help": self.show_contact,
+                "info": self.show_contact,
             },
-            0
+            -1
         )
 
         for line in ["line_title_top", "line_title_bot",
@@ -596,7 +839,6 @@ class PomBissList(Screen):
         self["page_counter"] = Label("[1/1]")
         self["brand_label"] = Label("@VUSOLO")
 
-        # ⭐ نسخه پلاگین - بالای خط سبز لیست
         self["version_label"] = Label("PomBiss Plugin v%s" % self.PLUGIN_VERSION)
 
         for i in range(1, 11):
@@ -617,7 +859,6 @@ class PomBissList(Screen):
         self["btn_green_bg"] = Label("")
         self["btn_yellow_bg"] = Label("")
 
-        # ⭐ برچسب دکمه‌ها
         self["key_green"] = Label("SCAN")
         self["key_blue"] = Label("Clear")
         self["key_yellow"] = Label("Update")
@@ -625,10 +866,14 @@ class PomBissList(Screen):
 
         self["nav_help"] = Label(
             "Up/Down: Select  |  Left/Right: Page  |  OK: Scan  |  "
-            "GREEN: Scan  |  BLUE: Clear  |  YELLOW: Update  |  RED: Exit"
+            "MENU: Contact  |  BLUE: Clear  |  YELLOW: Update  |  RED: Exit"
         )
 
         self.onLayoutFinish.append(self.download_feeds)
+
+    def show_contact(self):
+        log_debug("Opening contact screen (MENU)")
+        self.session.open(PomBissContactScreen)
 
     def download_feeds(self):
         try:
@@ -802,7 +1047,6 @@ class PomBissList(Screen):
         signalfinder.open_signal_finder(self.session, feed)
 
     def update_plugin(self):
-        """دکمه زرد - چک و آپدیت پلاگین از GitHub"""
         log_debug("Manual update check triggered")
         updater.check_for_update(self.session, silent_if_no_update=False)
 
@@ -898,14 +1142,51 @@ class PomBissList(Screen):
 # ============================================================
 # نقطه ورود پلاگین
 # ============================================================
+def _do_safe_restart(session):
+    global _restart_timer
+
+    log_debug("=== SAFE RESTART via TryQuitMainloop ===")
+
+    try:
+        if os.path.exists(RESTART_FLAG):
+            os.remove(RESTART_FLAG)
+    except:
+        pass
+
+    session.open(
+        MessageBox,
+        "\u2705 Update installed successfully!\n\n"
+        "\U0001F504 Enigma2 will now restart.",
+        MessageBox.TYPE_INFO,
+        timeout=3
+    )
+
+    def do_restart():
+        log_debug("Calling TryQuitMainloop(3)")
+        try:
+            session.open(TryQuitMainloop, 3)
+        except Exception as e:
+            log_debug("TryQuitMainloop error: %s" % str(e))
+
+    _restart_timer = eTimer()
+    try:
+        _restart_timer.timeout.connect(do_restart)
+    except:
+        _restart_timer.callback.append(do_restart)
+    _restart_timer.start(3500, True)
+
+
 def _open_pombiss_list(session):
-    """باز کردن PomBissList بعد از تایید ثبت‌نام + چک خودکار آپدیت"""
     log_debug("=== _open_pombiss_list ===")
+
+    if os.path.exists(RESTART_FLAG):
+        log_debug("RESTART FLAG found -> restarting via TryQuitMainloop")
+        _do_safe_restart(session)
+        return
 
     def open_plugin():
         session.open(PomBissList)
 
-    # چک آپدیت در پس‌زمینه
     updater.check_for_update(
         session,
         silent_if_no_update=True,
@@ -914,7 +1195,6 @@ def _open_pombiss_list(session):
 
 
 def main(session, **kwargs):
-    """نقطه ورود - اول چک ثبت‌نام"""
     log_debug("=== main called ===")
     registration.check_registration(
         session,
