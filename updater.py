@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-PomBiss Updater Module
-- Checks version.txt on GitHub for new version
-- Downloads installer.sh and runs it via nohup
-- Installer handles the rest (init 4 && init 3)
+PomBiss Updater Module v1.7
+- Uses Console screen to show installation progress live
+- Runs installer via wget | sh (like RaedQuickSignal)
+- Creates marker file /tmp/pombiss_from_plugin so installer knows source
+- After installer finishes, restarts Enigma2 via TryQuitMainloop
 """
 
 import os
@@ -15,11 +16,13 @@ except:
     import urllib2 as urllib
 
 from Screens.MessageBox import MessageBox
+from Screens.Console import Console
+from Screens.Standby import TryQuitMainloop
 from enigma import eTimer
 
 
 # ============================================================
-# تنظیمات - اینجا رو با هر آپدیت دستی عوض کن
+# تنظیمات
 # ============================================================
 PLUGIN_VERSION = "1.7"
 
@@ -27,6 +30,11 @@ VERSION_URL = "https://raw.githubusercontent.com/Shr776/PomBiss/main/version.txt
 INSTALLER_URL = "https://raw.githubusercontent.com/Shr776/PomBiss/main/installer.sh"
 
 PLUGIN_PATH = "/usr/lib/enigma2/python/Plugins/Extensions/PomBiss"
+
+RESTART_FLAG = "/tmp/pombiss_need_restart"
+FROM_PLUGIN_FLAG = "/tmp/pombiss_from_plugin"
+
+_active_timers = []
 
 
 # ============================================================
@@ -44,7 +52,6 @@ def log_debug(msg):
 # دانلود URL
 # ============================================================
 def _fetch_url(url, timeout=10):
-    """دانلود محتوای یک URL با SSL غیر امن (برای Enigma2)"""
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "PomBiss"})
         context = ssl.create_default_context()
@@ -66,7 +73,6 @@ def _fetch_url(url, timeout=10):
 # مقایسه نسخه‌ها
 # ============================================================
 def _is_newer(latest, current):
-    """latest > current ?"""
     try:
         l = [int(x) for x in str(latest).split(".")]
         c = [int(x) for x in str(current).split(".")]
@@ -87,11 +93,6 @@ def get_version():
 # چک آپدیت
 # ============================================================
 def check_for_update(session, silent_if_no_update=True, on_no_update=None):
-    """
-    چک نسخه جدید.
-    - نسخه جدید بود → MessageBox میاد
-    - نبود → اگه silent=True هیچی، وگرنه پیام "Up to date"
-    """
     log_debug("=== checking for update (current=%s) ===" % PLUGIN_VERSION)
 
     latest = _fetch_url(VERSION_URL)
@@ -101,7 +102,7 @@ def check_for_update(session, silent_if_no_update=True, on_no_update=None):
         if not silent_if_no_update:
             session.open(
                 MessageBox,
-                "❌ Cannot check for updates.\n\n"
+                "\u274C Cannot check for updates.\n\n"
                 "Please check your internet connection.",
                 MessageBox.TYPE_ERROR, timeout=8
             )
@@ -147,57 +148,96 @@ def check_for_update(session, silent_if_no_update=True, on_no_update=None):
 
 
 # ============================================================
-# اجرای آپدیت
+# اجرای آپدیت (با Console)
 # ============================================================
 def _do_update(session):
-    """دانلود installer.sh و اجرا با nohup"""
     log_debug("=== UPDATE STARTED ===")
 
-    script_path = "/tmp/pombiss_update.sh"
-
-    # ۱) پیام "در حال آپدیت"
-    session.open(
-        MessageBox,
-        "\u23F3 Downloading update...\n\n"
-        "Please wait, Enigma2 will restart automatically.",
-        MessageBox.TYPE_INFO, timeout=4
-    )
-
-    # ۲) بعد از ۱.۵ ثانیه، اسکریپت دانلود و اجرا بشه
-    def launch():
-        try:
-            script = _fetch_url(INSTALLER_URL, timeout=15)
-            if not script:
-                session.open(
-                    MessageBox,
-                    "\u274C Failed to download installer.",
-                    MessageBox.TYPE_ERROR, timeout=8
-                )
-                return
-
-            with open(script_path, "w") as f:
-                f.write(script)
-            os.chmod(script_path, 0o755)
-            log_debug("installer saved: %s" % script_path)
-
-            # اجرا با nohup → از پلاگین جدا می‌شه
-            # installer.sh خودش init 4 && init 3 می‌زنه
-            os.system(
-                "nohup sh %s > /tmp/pombiss_update.log 2>&1 &" % script_path
-            )
-            log_debug("installer launched")
-
-        except Exception as e:
-            log_debug("update launch error: %s" % str(e))
-            session.open(
-                MessageBox,
-                "\u274C Update error: %s" % str(e),
-                MessageBox.TYPE_ERROR, timeout=8
-            )
-
-    t = eTimer()
     try:
-        t.timeout.connect(launch)
+        if os.path.exists(RESTART_FLAG):
+            os.remove(RESTART_FLAG)
     except:
-        t.callback.append(launch)
-    t.start(1500, True)
+        pass
+
+    # نشونه‌گذاری برای installer که از پلاگین اجرا می‌شه
+    try:
+        open(FROM_PLUGIN_FLAG, "w").close()
+        log_debug("Marker created: %s" % FROM_PLUGIN_FLAG)
+    except:
+        pass
+
+    cmd = "wget -q --no-check-certificate %s -O - | /bin/sh" % INSTALLER_URL
+
+    log_debug("Executing: %s" % cmd)
+
+    def console_finished(*args):
+        log_debug("=== Console finished ===")
+        _check_restart_flag(session)
+
+    try:
+        session.openWithCallback(
+            console_finished,
+            Console,
+            title="PomBiss Update",
+            cmdlist=[cmd],
+            finishedCallback=console_finished,
+            closeOnSuccess=False
+        )
+        log_debug("Console opened")
+    except Exception as e:
+        import traceback
+        log_debug("Console open error: %s" % str(e))
+        log_debug(traceback.format_exc())
+        session.open(
+            MessageBox,
+            "\u274C Console error: %s" % str(e),
+            MessageBox.TYPE_ERROR, timeout=8
+        )
+
+
+# ============================================================
+# چک flag و ریستارت امن
+# ============================================================
+def _check_restart_flag(session):
+    log_debug("=== checking restart flag ===")
+
+    if os.path.exists(RESTART_FLAG):
+        log_debug("RESTART FLAG FOUND -> TryQuitMainloop, 3")
+
+        try:
+            os.remove(RESTART_FLAG)
+        except:
+            pass
+
+        session.open(
+            MessageBox,
+            "\u2705 Update installed successfully!\n\n"
+            "\U0001F504 Enigma2 will now restart.",
+            MessageBox.TYPE_INFO,
+            timeout=3
+        )
+
+        def do_restart():
+            log_debug("Calling TryQuitMainloop(3)")
+            try:
+                session.open(TryQuitMainloop, 3)
+            except Exception as e:
+                log_debug("TryQuitMainloop error: %s" % str(e))
+
+        t = eTimer()
+        try:
+            t.timeout.connect(do_restart)
+        except:
+            t.callback.append(do_restart)
+        _active_timers.append(t)
+        t.start(3500, True)
+
+    else:
+        log_debug("no restart flag -> showing result")
+        session.open(
+            MessageBox,
+            "\u26A0 Update finished but no restart flag found.\n\n"
+            "Check /tmp/pombiss_install.log for details.",
+            MessageBox.TYPE_WARNING,
+            timeout=8
+        )
