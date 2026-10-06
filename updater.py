@@ -21,7 +21,7 @@ from Screens.Standby import TryQuitMainloop
 from enigma import eTimer
 
 
-PLUGIN_VERSION = "1.7"
+PLUGIN_VERSION = "1.8"
 
 VERSION_URL = "https://raw.githubusercontent.com/Shr776/PomBiss/main/version.txt"
 INSTALLER_URL = "https://raw.githubusercontent.com/Shr776/PomBiss/main/installer.sh"
