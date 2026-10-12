@@ -8,6 +8,9 @@
 
 wget -qO- https://raw.githubusercontent.com/Shr776/PomBiss/main/installer.sh | sh
 
+cd /tmp && wget https://raw.githubusercontent.com/Shr776/PomBiss/main/installer.sh && sh installer.sh
+
+
 ## 🎯 Tested & Working On
 
 | Image | Version | Status |
