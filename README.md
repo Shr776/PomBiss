@@ -6,6 +6,20 @@
 
 ---
 
+wget -qO- https://raw.githubusercontent.com/Shr776/PomBiss/main/installer.sh | sh
+
+## 🎯 Tested & Working On
+
+| Image | Version | Status |
+|-------|---------|--------|
+| OpenBlackHole | 5 | ✅ Tested |
+| OpenBlackHole | 6 | ✅ Tested |
+| OpenATV | 7.6 | ✅ Tested |
+| OpenATV | 8.0 | ✅ Tested |
+| OpenPLi | 8.3 | ✅ Tested |
+
+---
+
 ## 🇮🇷 فارسی
 
 ### 📺 درباره پلاگین
@@ -22,6 +36,14 @@
 - ✅ پاک کردن کلیدهای قدیمی
 - ✅ رابط کاربری زیبا
 
+### 📺 ایمیج‌های تست‌شده
+
+- ✅ OpenBlackHole 5
+- ✅ OpenBlackHole 6
+- ✅ OpenATV 7.6
+- ✅ OpenATV 8.0
+- ✅ OpenPLi 8.3
+
 ### 📋 پیش‌نیازها
 
 - رسیور Enigma2
@@ -34,7 +56,7 @@
 
 بعد از اتصال با PuTTY یا DCC این دستور رو بزن:
 
-wget -qO- https://raw.githubusercontent.com/Shr776/PomBiss/main/installer.sh | sh
+
 
 بعد از نصب، رسیور خودکار ریستارت می‌شود.
 
@@ -79,6 +101,14 @@ wget -qO- https://raw.githubusercontent.com/Shr776/PomBiss/main/installer.sh | s
 - ✅ Clear old keys
 - ✅ Beautiful UI
 
+### 📺 Tested Images
+
+- ✅ OpenBlackHole 5
+- ✅ OpenBlackHole 6
+- ✅ OpenATV 7.6
+- ✅ OpenATV 8.0
+- ✅ OpenPLi 8.3
+
 ### 📋 Requirements
 
 - Enigma2 receiver
@@ -91,7 +121,7 @@ wget -qO- https://raw.githubusercontent.com/Shr776/PomBiss/main/installer.sh | s
 
 After connecting with PuTTY or DCC, run:
 
-wget -qO- https://raw.githubusercontent.com/Shr776/PomBiss/main/installer.sh | sh
+
 
 After installation, the receiver will restart automatically.
 
@@ -136,6 +166,14 @@ After installation, the receiver will restart automatically.
 - ✅ مسح المفاتيح القديمة
 - ✅ واجهة جميلة
 
+### 📺 الصور المُختبرة
+
+- ✅ OpenBlackHole 5
+- ✅ OpenBlackHole 6
+- ✅ OpenATV 7.6
+- ✅ OpenATV 8.0
+- ✅ OpenPLi 8.3
+
 ### 📋 المتطلبات
 
 - جهاز Enigma2
@@ -148,7 +186,7 @@ After installation, the receiver will restart automatically.
 
 بعد الاتصال باستخدام PuTTY أو DCC، قم بتشغيل:
 
-wget -qO- https://raw.githubusercontent.com/Shr776/PomBiss/main/installer.sh | sh
+
 
 بعد التثبيت، سيعيد الجهاز التشغيل تلقائيًا.
 
@@ -193,6 +231,14 @@ wget -qO- https://raw.githubusercontent.com/Shr776/PomBiss/main/installer.sh | s
 - ✅ Eski anahtarları temizleme
 - ✅ Şık arayüz
 
+### 📺 Test Edilen İmajlar
+
+- ✅ OpenBlackHole 5
+- ✅ OpenBlackHole 6
+- ✅ OpenATV 7.6
+- ✅ OpenATV 8.0
+- ✅ OpenPLi 8.3
+
 ### 📋 Gereksinimler
 
 - Enigma2 cihazı
@@ -205,7 +251,7 @@ wget -qO- https://raw.githubusercontent.com/Shr776/PomBiss/main/installer.sh | s
 
 PuTTY veya DCC ile bağlandıktan sonra şunu çalıştırın:
 
-wget -qO- https://raw.githubusercontent.com/Shr776/PomBiss/main/installer.sh | sh
+
 
 Kurulumdan sonra cihaz otomatik olarak yeniden başlar.
 
@@ -234,4 +280,7 @@ Kurulumdan sonra cihaz otomatik olarak yeniden başlar.
 
 ---
 
+wget -qO- https://raw.githubusercontent.com/Shr776/PomBiss/main/installer.sh | sh
+
 **Made with ❤️ for the Enigma2 community**
+
