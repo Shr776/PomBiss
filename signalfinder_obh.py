@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Signalfinder for PomBiss - WITH SATFINDER (SNR/AGC/BER/LOCK)
-- Opens Satfinder screen with SNR/AGC/BER display
-- Auto-fills feed parameters (frequency, pol, symbol rate, satellite)
-- After user checks signal, saves BISS key + restarts emulator
-- Uses same technique as Satelliweb plugin
+Signalfinder for PomBiss - OpenBlackHole - v54
+- FIX: syntax error (unterminated string)
+- FIX: position_to_int (160 -> 160)
+- FIX: tuner/frontend wait with eTimer
+- FIX: reconcile - skip duplicate CW (silent)
 """
 
 import sys
@@ -20,15 +20,16 @@ from enigma import (
     eDVBFrontendParametersSatellite,
     eTimer,
     eServiceReference,
-    iServiceInformation
+    iServiceInformation,
+    eComponentScan,
 )
 from Components.NimManager import nimmanager
 from Components.config import config
 from Screens.MessageBox import MessageBox
 from Screens.Screen import Screen
+from Screens.ServiceScan import ServiceScan
 from Components.Label import Label
 from Components.Pixmap import Pixmap
-from Tools.BoundFunction import boundFunction
 
 try:
     from Tools.Directories import resolveFilename, SCOPE_PLUGINS
@@ -40,13 +41,34 @@ except:
 def log_debug(msg):
     try:
         with open("/tmp/PomBiss.log", "a") as f:
-            f.write("[Signalfinder] %s\n" % msg)
+            f.write("[Signalfinder-OBH] %s\n" % msg)
     except:
         pass
 
 
+def _safe_text(value):
+    try:
+        if value is None:
+            return ""
+        if isinstance(value, str):
+            return value
+        try:
+            if isinstance(value, unicode):
+                return value.encode("utf-8", "ignore")
+        except NameError:
+            pass
+        if isinstance(value, bytes):
+            return value
+        try:
+            return str(value)
+        except:
+            return ""
+    except:
+        return ""
+
+
 # ============================================================
-# توابع کمکی
+# Helpers
 # ============================================================
 def _pol_to_int(pol_str):
     pol_str = str(pol_str).upper().strip()
@@ -62,11 +84,17 @@ def _pol_to_int(pol_str):
 
 
 def _position_to_int(position_str):
+    """
+    v54 FIX: 160 -> 160 (not 1600)
+    """
     try:
-        pos = float(position_str)
-        if pos > 360:
-            return int(pos)
-        return int(round(pos * 10))
+        s = str(position_str).strip()
+        if not s:
+            return 0
+        pos = float(s)
+        if '.' in s:
+            return int(round(pos * 10))
+        return int(pos)
     except:
         return 0
 
@@ -74,7 +102,18 @@ def _position_to_int(position_str):
 def _get_tuner():
     for slot in nimmanager.nim_slots:
         if slot.isCompatible("DVB-S"):
-            if slot.config_mode not in ("loopthrough", "satposdepends", "nothing"):
+            mode = None
+            try:
+                if hasattr(slot, 'config') and hasattr(slot.config, 'dvbs'):
+                    mode = slot.config.dvbs.configMode.value
+            except:
+                pass
+            if mode is None:
+                try:
+                    mode = slot.config_mode
+                except:
+                    pass
+            if mode not in ("loopthrough", "satposdepends", "nothing"):
                 return slot.slot
     return None
 
@@ -146,7 +185,7 @@ def _find_sat_index(feid, satpos, sat_name=""):
 
 
 # ============================================================
-# توابع BISS
+# BISS
 # ============================================================
 def _find_softcam_key():
     paths = [
@@ -211,18 +250,27 @@ def _crc32(data):
     return value ^ 0xffffffff
 
 
+def _get_hash_from_ref(ref):
+    """hash from ServiceReference"""
+    try:
+        sid = ref.getUnsignedData(1)
+        tsid = ref.getUnsignedData(2)
+        onid = ref.getUnsignedData(3)
+        namespace = ref.getUnsignedData(4) | 0xA0000000
+
+        if namespace & 0xFFFF == 0:
+            data = "%04X%04X%04X%08X" % (sid, tsid, onid, namespace)
+        else:
+            data = "%04X%08X" % (sid, namespace)
+        return _crc32(binascii.unhexlify(data))
+    except Exception as e:
+        log_debug("_get_hash_from_ref err: %s" % str(e))
+        return None
+
+
 def _get_hash(session):
     ref = session.nav.getCurrentlyPlayingServiceReference()
-    sid = ref.getUnsignedData(1)
-    tsid = ref.getUnsignedData(2)
-    onid = ref.getUnsignedData(3)
-    namespace = ref.getUnsignedData(4) | 0xA0000000
-
-    if namespace & 0xFFFF == 0:
-        data = "%04X%04X%04X%08X" % (sid, tsid, onid, namespace)
-    else:
-        data = "%04X%08X" % (sid, namespace)
-    return _crc32(binascii.unhexlify(data))
+    return _get_hash_from_ref(ref)
 
 
 def _get_orb(session):
@@ -286,7 +334,10 @@ def _save_biss_key_directly(session, softcam_path, cw):
         vpid_part = "{:04X}".format(vpid)
         keystr = "F %s%s 00 %s" % (sid_part, vpid_part, cw)
     else:
-        keystr = "F %08X 00 %s" % (_get_hash(session), cw)
+        h = _get_hash(session)
+        if h is None:
+            return False, ""
+        keystr = "F %08X 00 %s" % (h, cw)
 
     name = ServiceReference(session.nav.getCurrentlyPlayingServiceReference()).getServiceName()
     datastr = "\n%s ; Added by PomBiss on %s for %s at %s ; Edited by PomBiss" % (
@@ -303,7 +354,7 @@ def _save_biss_key_directly(session, softcam_path, cw):
 
 
 # ============================================================
-# ریستارت امولاتور
+# Restart emulator
 # ============================================================
 def restart_emulator():
     emu_keywords = ["oscam", "ncam", "cccam", "mgcamd", "gbox",
@@ -396,8 +447,8 @@ def restart_emulator():
 # CAID check
 # ============================================================
 CAID_BISS = 0x2600
-POLL_MS = 700
-POLL_MAX_TRIES = 20
+POLL_MS = 1000
+POLL_MAX_TRIES = 30
 
 
 def _service_has_biss(session):
@@ -411,7 +462,7 @@ def _service_has_biss(session):
 
 
 # ============================================================
-# صفحه موفقیت
+# Success screen
 # ============================================================
 class PomBissSuccessScreen(Screen):
     skin = '''
@@ -446,13 +497,13 @@ class PomBissSuccessScreen(Screen):
         self["line_top"] = Label("")
         self["line_bot"] = Label("")
         self["msg"] = Label("")
-        self["service_name"] = Label(service_name)
-        self["freq_info"] = Label(freq_info)
-        self["orbit"] = Label("Satellite: %s" % orbit if orbit else "")
-        self["cw_label"] = Label("CW: %s" % cw if cw else "")
+        self["service_name"] = Label(_safe_text(service_name))
+        self["freq_info"] = Label(_safe_text(freq_info))
+        self["orbit"] = Label(_safe_text("Satellite: %s" % orbit if orbit else ""))
+        self["cw_label"] = Label(_safe_text("CW: %s" % cw if cw else ""))
         self.base_msg = msg
         self.countdown = timeout
-        self["msg"].setText("%s  (%d)" % (self.base_msg, self.countdown))
+        self["msg"].setText(_safe_text("%s  (%d)" % (self.base_msg, self.countdown)))
         self.timer = eTimer()
         try:
             self.timer_conn = self.timer.timeout.connect(self._tick)
@@ -469,7 +520,10 @@ class PomBissSuccessScreen(Screen):
                 pass
             self._do_close()
         else:
-            self["msg"].setText("%s  (%d)" % (self.base_msg, self.countdown))
+            try:
+                self["msg"].setText(_safe_text("%s  (%d)" % (self.base_msg, self.countdown)))
+            except:
+                pass
 
     def _do_close(self):
         try:
@@ -481,7 +535,7 @@ class PomBissSuccessScreen(Screen):
 
 
 # ============================================================
-# KeyPusher
+# KeyPusher v54
 # ============================================================
 _pusher = None
 
@@ -501,45 +555,126 @@ class _KeyPusher(object):
     def start(self):
         self.timer.start(POLL_MS, True)
 
+    def _is_on_expected_transponder(self):
+        try:
+            if not self.feed:
+                return True
+            feed_freq = str(self.feed.get('freq', '')).strip()
+            feed_sr = str(self.feed.get('sr', '')).strip()
+            feed_pos = str(self.feed.get('position', '')).strip()
+
+            service = self.session.nav.getCurrentService()
+            if not service:
+                return False
+            feinfo = service.frontendInfo()
+            if not feinfo:
+                return False
+            data = feinfo.getAll(True)
+            if not data:
+                return False
+
+            current_freq_hz = data.get('frequency', 0)
+            current_sr_hz = data.get('symbol_rate', 0)
+            current_orb = data.get('orbital_position', 0)
+
+            current_freq_khz = current_freq_hz // 1000
+            current_sr_ksym = current_sr_hz // 1000
+
+            try:
+                if feed_freq and abs(int(current_freq_khz) - int(feed_freq)) > 3:
+                    log_debug("mismatch freq: cur=%d exp=%s" % (current_freq_khz, feed_freq))
+                    return False
+            except:
+                pass
+
+            try:
+                if feed_sr and abs(int(current_sr_ksym) - int(feed_sr)) > 10:
+                    log_debug("mismatch sr: cur=%d exp=%s" % (current_sr_ksym, feed_sr))
+                    return False
+            except:
+                pass
+
+            try:
+                if feed_pos:
+                    exp_orb = _position_to_int(feed_pos)
+                    if int(current_orb) != exp_orb:
+                        log_debug("mismatch orb: cur=%d exp=%d" % (current_orb, exp_orb))
+                        return False
+            except:
+                pass
+
+            log_debug("OK: transponder matches")
+            return True
+        except Exception as e:
+            log_debug("_is_on_expected_transponder err: %s" % str(e))
+            return False
+
+    def _is_cw_already_saved(self):
+        try:
+            softcam = _find_softcam_key()
+            if not softcam or not os.path.exists(softcam):
+                return False
+            with open(softcam, "r") as f:
+                content = f.read()
+            return self.cw in content
+        except:
+            return False
+
     def _tick(self):
         global _pusher
         self.tries += 1
+        if self.tries % 5 == 0:
+            log_debug("KeyPusher waiting... tries=%d" % self.tries)
+
+        # از بار دوم چک کن روی همون ترانسپوندر باشه
+        if self.tries > 1:
+            if not self._is_on_expected_transponder():
+                log_debug("ABORT: wrong transponder")
+                _pusher = None
+                return
+
         if _service_has_biss(self.session):
             log_debug("BISS CAID found after %d tries" % self.tries)
             _pusher = None
             self._auto_save_and_restart()
         elif self.tries >= POLL_MAX_TRIES:
-            log_debug("BISS CAID not found, giving up")
+            log_debug("KeyPusher timeout, giving up")
             _pusher = None
-            self.session.open(
-                MessageBox,
-                "No BISS CAID (2600) on the current channel.\n"
-                "Key was NOT added.",
-                MessageBox.TYPE_WARNING, timeout=8)
         else:
             self.timer.start(POLL_MS, True)
 
     def _auto_save_and_restart(self):
         session = self.session
+
+        # چک 1: transponder
+        if not self._is_on_expected_transponder():
+            log_debug("ABORT save: wrong transponder")
+            return
+
+        # چک 2: CAID BISS
+        if not _service_has_biss(session):
+            log_debug("ABORT save: no BISS CAID")
+            return
+
+        # چک 3: duplicate
+        if self._is_cw_already_saved():
+            log_debug("SKIP: CW already in SoftCam.Key")
+            return
+
         softcam = _find_softcam_key()
         if not softcam or not os.path.exists(softcam):
-            session.open(MessageBox,
-                         "Emu misses SoftCam.Key (%s)" % softcam,
-                         MessageBox.TYPE_ERROR, timeout=8)
+            log_debug("ABORT save: SoftCam.Key not found")
             return
 
         try:
             ok, keystr = _save_biss_key_directly(session, softcam, self.cw)
             if not ok:
-                session.open(MessageBox, "Failed to write SoftCam.Key",
-                             MessageBox.TYPE_ERROR, timeout=8)
+                log_debug("save failed")
                 return
         except Exception as e:
             import traceback
             log_debug("save key error: %s" % str(e))
             log_debug(traceback.format_exc())
-            session.open(MessageBox, "Save error: %s" % str(e),
-                         MessageBox.TYPE_ERROR, timeout=8)
             return
 
         info = _get_service_info(session)
@@ -549,7 +684,17 @@ class _KeyPusher(object):
 
         def restart_after_close():
             try:
+                try:
+                    if hasattr(session, 'nav') and session.nav:
+                        ref = session.nav.getCurrentlyPlayingServiceReference()
+                        if ref:
+                            session.nav.playService(ref)
+                            log_debug("service re-tuned")
+                except Exception as e:
+                    log_debug("retune service error: %s" % str(e))
+                time.sleep(1)
                 restart_emulator()
+                log_debug("emulator restarted")
             except Exception as e:
                 log_debug("restart_emulator error: %s" % str(e))
 
@@ -579,16 +724,11 @@ def push_key_to_keyadder(session, cw, feed=None):
 
 
 # ============================================================
-# ⭐ Satfinder با پارامتر — دقیقاً مثل Satelliweb
+# Satfinder with params - v54
 # ============================================================
 def _open_satfinder_with_params(session, feed, feid):
-    """
-    Satfinder رو باز می‌کنه با پارامترهای فید از قبل ست شده
-    دقیقاً مثل Satelliweb plugin
-    """
     from Plugins.SystemPlugins.Satfinder.plugin import Satfinder
 
-    # استخراج پارامترها
     try:
         freq = int(feed.get('freq', 0))
         sr = int(feed.get('sr', 0))
@@ -604,13 +744,11 @@ def _open_satfinder_with_params(session, feed, feid):
     log_debug("Opening Satfinder: freq=%d sr=%d pol=%d satpos=%d" % (
         freq, sr, pol_int, satpos))
 
-    # پیدا کردن satellite
     sat_idx = _find_sat_index(feid, satpos, sat_name)
     log_debug("sat_idx = %s" % str(sat_idx))
 
     class PomBissSatfinder(Satfinder):
         def __init__(self, session):
-            # Satfinder فقط session می‌گیره
             Satfinder.__init__(self, session)
             self.pombiss_feed = feed
             self.pombiss_feid = feid
@@ -618,13 +756,40 @@ def _open_satfinder_with_params(session, feed, feid):
             self.pombiss_sr = sr
             self.pombiss_pol = pol_int
             self.pombiss_sat_idx = sat_idx
-            self.onLayoutFinish.append(self._apply_pombiss)
-
-        def _apply_pombiss(self):
+            self.pombiss_applied = False
+            self.pombiss_retries = 0
+            self.pombiss_timer = eTimer()
             try:
-                log_debug("--- applying params to Satfinder ---")
+                self.pombiss_timer.timeout.connect(self._pombiss_apply)
+            except:
+                self.pombiss_timer.callback.append(self._pombiss_apply)
+            self.pombiss_timer.start(500, False)
 
-                # 1. Tuner
+        def _pombiss_apply(self):
+            if self.pombiss_applied:
+                return
+            self.pombiss_retries += 1
+
+            has_tuner = hasattr(self, 'tuner') and self.tuner is not None
+            has_frontend = hasattr(self, 'frontend') and self.frontend is not None
+
+            if not has_tuner or not has_frontend:
+                if self.pombiss_retries < 20:
+                    log_debug("waiting for tuner/frontend retry=%d" % self.pombiss_retries)
+                    self.pombiss_timer.start(300, False)
+                else:
+                    log_debug("GAVE UP waiting for tuner")
+                return
+
+            self.pombiss_applied = True
+            try:
+                self.pombiss_timer.stop()
+            except:
+                pass
+
+            log_debug("tuner/frontend ready - applying params")
+
+            try:
                 if hasattr(self, 'scan_nims') and self.scan_nims:
                     try:
                         self.scan_nims.value = str(feid)
@@ -632,7 +797,6 @@ def _open_satfinder_with_params(session, feed, feid):
                     except Exception as e:
                         log_debug("scan_nims err: %s" % str(e))
 
-                # 2. Satellite selection
                 if self.pombiss_sat_idx is not None and hasattr(self, 'scan_satselection'):
                     try:
                         if len(self.scan_satselection) > feid:
@@ -642,7 +806,6 @@ def _open_satfinder_with_params(session, feed, feid):
                     except Exception as e:
                         log_debug("scan_satselection err: %s" % str(e))
 
-                # 3. tuning_type = single_transponder
                 if hasattr(self, 'tuning_type') and self.tuning_type:
                     try:
                         self.tuning_type.value = "single_transponder"
@@ -650,7 +813,6 @@ def _open_satfinder_with_params(session, feed, feid):
                     except Exception as e:
                         log_debug("tuning_type err: %s" % str(e))
 
-                # 4. Frequency, SR, Pol
                 if hasattr(self, 'scan_sat') and self.scan_sat:
                     try:
                         self.scan_sat.frequency.value = self.pombiss_freq
@@ -705,14 +867,12 @@ def _open_satfinder_with_params(session, feed, feid):
                     except:
                         pass
 
-                # 5. Rebuild setup
                 try:
                     self.createSetup()
                     log_debug("createSetup called")
                 except Exception as e:
                     log_debug("createSetup err: %s" % str(e))
 
-                # 6. Retune
                 try:
                     if hasattr(self, 'retune'):
                         self.retune()
@@ -720,22 +880,23 @@ def _open_satfinder_with_params(session, feed, feid):
                 except Exception as e:
                     log_debug("retune err: %s" % str(e))
 
-                log_debug("--- params applied to Satfinder ---")
+                log_debug("--- params applied ---")
 
             except Exception as e:
                 import traceback
-                log_debug("_apply_pombiss error: %s" % str(e))
+                log_debug("_pombiss_apply error: %s" % str(e))
                 log_debug(traceback.format_exc())
 
     return PomBissSatfinder
 
 
 # ============================================================
-# نقطه ورود نهایی
+# Entry point - v54
 # ============================================================
 def open_signal_finder(session, feed):
     try:
-        log_debug("=== START (Satfinder with params) ===")
+        log_debug("=" * 50)
+        log_debug("=== START (OBH v54) ===")
         log_debug("feed: " + str(feed))
 
         feid = _get_tuner()
@@ -747,7 +908,6 @@ def open_signal_finder(session, feed):
 
         log_debug("using tuner: %d" % feid)
 
-        # ساخت Satfinder با پارامترها
         try:
             CustomSatfinder = _open_satfinder_with_params(session, feed, feid)
         except ImportError as e:
@@ -758,7 +918,6 @@ def open_signal_finder(session, feed):
             CustomSatfinder = None
 
         if CustomSatfinder is None:
-            # Fallback: استفاده از ScanSetup
             log_debug("falling back to ScanSetup")
             from Screens.ScanSetup import ScanSetup
 
@@ -775,7 +934,6 @@ def open_signal_finder(session, feed):
                         sr_ksym = int(self.pombiss_feed['sr'])
                         pol_int = _pol_to_int(self.pombiss_feed['pol'])
                         satpos = _position_to_int(self.pombiss_feed['position'])
-                        sat_name = self.pombiss_feed.get('sat', '')
 
                         if hasattr(self, 'scan_sat'):
                             ss = self.scan_sat
@@ -804,10 +962,8 @@ def open_signal_finder(session, feed):
 
             session.open(PomBissScanSetup)
         else:
-            # Satfinder داره — کاربر SNR می‌بینه
             def on_close(answer=None):
                 log_debug("Satfinder closed")
-                # بعد از بستن Satfinder، key رو push کن
                 cw = feed.get('cw', '')
                 if cw:
                     push_key_to_keyadder(session, cw, feed)
