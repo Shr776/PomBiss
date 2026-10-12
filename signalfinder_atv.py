@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Signalfinder for PomBiss - v49
+Signalfinder for PomBiss - v54
+- FIX: skip duplicate CW (silent) — like OBH v54
 - FIX: is_id = No_Stream_Id_Filter (not 0)
 - FIX: t2mi_plp_id = No_T2MI_PLP_Id (not -1)
 - So ServiceScan will not show MIS at all
@@ -44,6 +45,27 @@ def log_debug(msg):
         pass
 
 
+def _safe_text(value):
+    try:
+        if value is None:
+            return ""
+        if isinstance(value, str):
+            return value
+        try:
+            if isinstance(value, unicode):
+                return value.encode("utf-8", "ignore")
+        except NameError:
+            pass
+        if isinstance(value, bytes):
+            return value
+        try:
+            return str(value)
+        except:
+            return ""
+    except:
+        return ""
+
+
 # ============================================================
 # Helpers
 # ============================================================
@@ -61,11 +83,17 @@ def _pol_to_int(pol_str):
 
 
 def _position_to_int(position_str):
+    """
+    v54 FIX: 160 -> 160 (not 1600)
+    """
     try:
-        pos = float(position_str)
-        if pos.is_integer():
-            return int(pos)
-        return int(round(pos * 10))
+        s = str(position_str).strip()
+        if not s:
+            return 0
+        pos = float(s)
+        if '.' in s:
+            return int(round(pos * 10))
+        return int(pos)
     except:
         return 0
 
@@ -321,13 +349,13 @@ class PomBissSuccessScreen(Screen):
         self["line_top"] = Label("")
         self["line_bot"] = Label("")
         self["msg"] = Label("")
-        self["service_name"] = Label(service_name)
-        self["freq_info"] = Label(freq_info)
-        self["orbit"] = Label("Satellite: %s" % orbit if orbit else "")
-        self["cw_label"] = Label("CW: %s" % cw if cw else "")
+        self["service_name"] = Label(_safe_text(service_name))
+        self["freq_info"] = Label(_safe_text(freq_info))
+        self["orbit"] = Label(_safe_text("Satellite: %s" % orbit if orbit else ""))
+        self["cw_label"] = Label(_safe_text("CW: %s" % cw if cw else ""))
         self.base_msg = msg
         self.countdown = timeout
-        self["msg"].setText("%s  (%d)" % (self.base_msg, self.countdown))
+        self["msg"].setText(_safe_text("%s  (%d)" % (self.base_msg, self.countdown)))
         self.timer = eTimer()
         try:
             self.timer_conn = self.timer.timeout.connect(self._tick)
@@ -342,7 +370,9 @@ class PomBissSuccessScreen(Screen):
             except: pass
             self._do_close()
         else:
-            self["msg"].setText("%s  (%d)" % (self.base_msg, self.countdown))
+            try:
+                self["msg"].setText(_safe_text("%s  (%d)" % (self.base_msg, self.countdown)))
+            except: pass
 
     def _do_close(self):
         try:
@@ -354,7 +384,7 @@ class PomBissSuccessScreen(Screen):
 
 
 # ============================================================
-# KeyPusher
+# KeyPusher v54 (ATV)
 # ============================================================
 _pusher = None
 
@@ -372,9 +402,86 @@ class _KeyPusher(object):
     def start(self):
         self.timer.start(POLL_MS, True)
 
+    def _is_cw_already_saved(self):
+        """v54: چک میکنه CW قبلاً توی SoftCam.Key ذخیره شده یا نه"""
+        try:
+            softcam = _find_softcam_key()
+            if not softcam or not os.path.exists(softcam):
+                return False
+            with open(softcam, "r") as f:
+                content = f.read()
+            return self.cw in content
+        except:
+            return False
+
+    def _is_on_expected_transponder(self):
+        """v54: چک میکنه کانال فعلی روی همون ترانسپوندر فید هست"""
+        try:
+            if not self.feed:
+                return True
+            feed_freq = str(self.feed.get('freq', '')).strip()
+            feed_sr = str(self.feed.get('sr', '')).strip()
+            feed_pos = str(self.feed.get('position', '')).strip()
+
+            service = self.session.nav.getCurrentService()
+            if not service:
+                return False
+            feinfo = service.frontendInfo()
+            if not feinfo:
+                return False
+            data = feinfo.getAll(True)
+            if not data:
+                return False
+
+            current_freq_hz = data.get('frequency', 0)
+            current_sr_hz = data.get('symbol_rate', 0)
+            current_orb = data.get('orbital_position', 0)
+
+            current_freq_khz = current_freq_hz // 1000
+            current_sr_ksym = current_sr_hz // 1000
+
+            try:
+                if feed_freq and abs(int(current_freq_khz) - int(feed_freq)) > 3:
+                    log_debug("mismatch freq: cur=%d exp=%s" % (current_freq_khz, feed_freq))
+                    return False
+            except:
+                pass
+
+            try:
+                if feed_sr and abs(int(current_sr_ksym) - int(feed_sr)) > 10:
+                    log_debug("mismatch sr: cur=%d exp=%s" % (current_sr_ksym, feed_sr))
+                    return False
+            except:
+                pass
+
+            try:
+                if feed_pos:
+                    exp_orb = _position_to_int(feed_pos)
+                    if int(current_orb) != exp_orb:
+                        log_debug("mismatch orb: cur=%d exp=%d" % (current_orb, exp_orb))
+                        return False
+            except:
+                pass
+
+            log_debug("OK: transponder matches")
+            return True
+        except Exception as e:
+            log_debug("_is_on_expected_transponder err: %s" % str(e))
+            return False
+
     def _tick(self):
         global _pusher
         self.tries += 1
+        if self.tries % 5 == 0:
+            log_debug("KeyPusher waiting... tries=%d" % self.tries)
+
+        # v54: از بار دوم چک کن روی همون ترانسپوندر باشه
+        if self.tries > 1:
+            if not self._is_on_expected_transponder():
+                log_debug("ABORT: wrong transponder")
+                _pusher = None
+                return
+
         if _service_has_biss(self.session):
             log_debug("BISS CAID found after %d tries" % self.tries)
             _pusher = None
@@ -387,12 +494,29 @@ class _KeyPusher(object):
 
     def _auto_save_and_restart(self):
         session = self.session
+
+        # v54 چک 1: transponder
+        if not self._is_on_expected_transponder():
+            log_debug("ABORT save: wrong transponder")
+            return
+
+        # v54 چک 2: CAID BISS
+        if not _service_has_biss(session):
+            log_debug("ABORT save: no BISS CAID")
+            return
+
+        # v54 چک 3: duplicate
+        if self._is_cw_already_saved():
+            log_debug("SKIP: CW already in SoftCam.Key")
+            return
+
         softcam = _find_softcam_key()
         if not softcam or not os.path.exists(softcam):
             session.open(MessageBox,
                          "Emu misses SoftCam.Key (%s)" % softcam,
                          MessageBox.TYPE_ERROR, timeout=8)
             return
+
         try:
             ok, keystr = _save_biss_key_directly(session, softcam, self.cw)
             if not ok:
@@ -406,6 +530,7 @@ class _KeyPusher(object):
             session.open(MessageBox, "Save error: %s" % str(e),
                          MessageBox.TYPE_ERROR, timeout=8)
             return
+
         service_name = ""
         orb = "?"
         try:
@@ -413,19 +538,33 @@ class _KeyPusher(object):
             ref = session.nav.getCurrentlyPlayingServiceReference()
             service_name = ServiceReference(ref).getServiceName()
             orb = _get_orb(session)
-        except: pass
+        except:
+            pass
         freq_info = ""
         try:
             freq_info = "%s %s %s" % (
                 self.feed.get("freq", ""),
                 self.feed.get("pol", ""),
                 self.feed.get("sr", ""))
-        except: pass
+        except:
+            pass
 
         def restart_after_close():
-            try: restart_emulator()
+            try:
+                try:
+                    if hasattr(session, 'nav') and session.nav:
+                        ref = session.nav.getCurrentlyPlayingServiceReference()
+                        if ref:
+                            session.nav.playService(ref)
+                            log_debug("service re-tuned")
+                except Exception as e:
+                    log_debug("retune service err: %s" % str(e))
+                time.sleep(1)
+                restart_emulator()
+                log_debug("emulator restarted")
             except Exception as e:
-                log_debug("restart_emulator err: %s" % str(e))
+                log_debug("restart_after_close err: %s" % str(e))
+
         try:
             session.open(PomBissSuccessScreen,
                          "Key saved successfully!",
@@ -448,12 +587,12 @@ def push_key_to_keyadder(session, cw, feed=None):
 
 
 # ============================================================
-# Entry point
+# Entry point - v54
 # ============================================================
 def open_signal_finder(session, feed):
     try:
         log_debug("=" * 50)
-        log_debug("=== START (v49) ===")
+        log_debug("=== START (ATV v54) ===")
         log_debug("feed: " + str(feed))
 
         satpos = _position_to_int(feed.get('position', '0'))
@@ -488,7 +627,7 @@ def open_signal_finder(session, feed):
         FEED_FEID = feid
         FEED_SAT_IDX = sat_idx
 
-        # ⭐ مقادیر درست برای حذف MIS/T2MI
+        # مقادیر درست برای حذف MIS/T2MI
         SP = eDVBFrontendParametersSatellite
         NO_STREAM = getattr(SP, 'No_Stream_Id_Filter', 0xFFFFFFFF)
         NO_T2MI = getattr(SP, 'No_T2MI_PLP_Id', 0xFFFFFFFF)
@@ -502,6 +641,8 @@ def open_signal_finder(session, feed):
         class PomBissSignalFinder(SignalFinder):
             def __init__(self, session):
                 SignalFinder.__init__(self, session)
+                self.pombiss_feed_cw = feed.get('cw', '')
+                self.pombiss_feed_data = feed
                 self._pombiss_ready = False
                 self._pombiss_timer = eTimer()
                 try:
@@ -580,7 +721,7 @@ def open_signal_finder(session, feed):
                                 ss.inversion.value = SP.Inversion_Unknown
                         except: pass
 
-                        # ⭐ FIX: مقادیر درست برای حذف MIS/T2MI
+                        # مقادیر درست برای حذف MIS/T2MI
                         try:
                             if hasattr(ss, 'is_id_bool'):
                                 ss.is_id_bool.value = False
@@ -617,7 +758,7 @@ def open_signal_finder(session, feed):
                     log_debug(traceback.format_exc())
 
             def keyGo(self):
-                log_debug("=== keyGo OVERRIDE (v49) ===")
+                log_debug("=== keyGo OVERRIDE (ATV v54) ===")
                 if not self._pombiss_ready:
                     log_debug("not ready yet")
                     return
@@ -643,7 +784,6 @@ def open_signal_finder(session, feed):
                             parm.pilot = SP.Pilot_Auto
                     except: pass
 
-                    # ⭐ FIX v49: مقادیر درست
                     for attr, val in [
                         ('is_id', NO_STREAM),
                         ('pls_mode', PLS_GOLD),
