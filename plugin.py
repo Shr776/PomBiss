@@ -1,12 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
-PomBiss Plugin for Enigma2
+PomBiss Plugin for Enigma2 v4.3
 Sports Feed Viewer - Neon Dual Panel Theme
-+ Clear PomBiss Keys feature
-+ User Registration System (Google Sheets)
-+ Auto Update System with Console progress
-+ Contact Us screen (MENU button) - 8 blocks with red lines
++ LIVE PIP PREVIEW (800 × 450 - دقیق 16:9)
++ RGB-ordered buttons (EXIT, SCAN, Update, Clear)
++ All elements inside 1080p screen
++ Focus on text content (PIP reduced to 800×450)
 """
 
 from __future__ import print_function
@@ -31,6 +31,7 @@ import time
 import os
 import glob
 import signal
+import subprocess
 
 plugin_dir = resolveFilename(SCOPE_PLUGINS, "Extensions/PomBiss")
 FEEDS_URL = "https://raw.githubusercontent.com/Shr776/PomBissFeeds/main/feeds.txt"
@@ -172,13 +173,22 @@ def _restart_emulator_after_clear():
 
     for info in found_pids:
         try:
-            os.kill(info["pid"], signal.SIGKILL)
-        except Exception:
+            os.kill(info["pid"], signal.SIGTERM)
+        except:
             pass
 
     time.sleep(2)
 
+    for info in found_pids:
+        try:
+            os.kill(info["pid"], signal.SIGKILL)
+        except:
+            pass
+
+    time.sleep(1)
+
     restarted = False
+    seen = set()
     for info in found_pids:
         exe = info["exe"]
         cmdline = info["cmdline"]
@@ -191,16 +201,28 @@ def _restart_emulator_after_clear():
             if cmd_parts and cmd_parts[0] == exe:
                 cmd_parts = cmd_parts[1:]
             if cmd_parts:
-                full_cmd = "%s %s" % (exe, " ".join(cmd_parts))
+                full_cmd = [exe] + cmd_parts
             else:
-                full_cmd = exe
+                full_cmd = [exe]
         else:
-            full_cmd = exe
+            full_cmd = [exe]
+
+        key = " ".join(full_cmd)
+        if key in seen:
+            continue
+        seen.add(key)
 
         try:
-            os.system("nohup %s > /dev/null 2>&1 &" % full_cmd)
+            subprocess.Popen(
+                full_cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL,
+                start_new_session=True,
+                close_fds=True
+            )
             restarted = True
-        except Exception:
+        except:
             pass
 
     if restarted:
@@ -228,7 +250,7 @@ def _clear_pombiss_keys():
                 new_lines.append(line)
 
         if removed_count == 0:
-            return True, 0, "No PomBiss or Live Feed keys found in SoftCam.Key"
+            return True, 0, "No PomBiss or Live Feed keys found"
 
         backup_path = softcam_path + ".bak.pombiss"
         try:
@@ -240,12 +262,11 @@ def _clear_pombiss_keys():
         with open(softcam_path, "w") as f:
             f.writelines(new_lines)
 
-        log_debug("Cleared %d PomBiss/LiveFeed keys from %s" % (removed_count, softcam_path))
-
+        log_debug("Cleared %d keys" % removed_count)
         return True, removed_count, "OK"
 
     except Exception as e:
-        log_debug("clear_pombiss_keys error: %s" % str(e))
+        log_debug("clear error: %s" % str(e))
         return False, 0, "Error: %s" % str(e)
 
 
@@ -256,30 +277,23 @@ POSITION_FIX = {
 
 
 # ============================================================
-# CONTACT US SCREEN - ۸ بلاک با خطوط قرمز
+# CONTACT US SCREEN
 # ============================================================
-
 class PomBissContactScreen(Screen):
-    """صفحه تماس - ۸ بلاک، خطوط قرمز، فونت متوسط"""
-
     skin = '''
 <screen name="PomBissContact" position="center,center" size="1400,1080"
         title="PomBiss Contact" flags="wfNoBorder" backgroundColor="#0a0a1a">
 
-    <!-- خط بالایی (آبی، قطور) -->
     <widget name="line_top" position="50,15" size="1300,5"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
-    <!-- تیتر اصلی (سبز روشن) -->
     <widget name="title" position="0,25" size="1400,60"
             font="Regular;36" transparent="1" foregroundColor="#00ff88"
             halign="center" valign="center" />
 
-    <!-- خط زیر تیتر (آبی، قطور) -->
     <widget name="line_title" position="50,95" size="1300,5"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
-    <!-- DEVELOPER -->
     <widget name="dev_label" position="0,110" size="1400,38"
             font="Regular;24" transparent="1" foregroundColor="#ffff00"
             halign="center" valign="center" />
@@ -290,11 +304,9 @@ class PomBissContactScreen(Screen):
             font="Regular;20" transparent="1" foregroundColor="#00aaff"
             halign="center" valign="center" />
 
-    <!-- خط جداکننده (قرمز، قطور) -->
     <widget name="line1" position="250,225" size="900,5"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
 
-    <!-- MAIN CHANNEL -->
     <widget name="main_label" position="0,235" size="1400,38"
             font="Regular;24" transparent="1" foregroundColor="#ffff00"
             halign="center" valign="center" />
@@ -308,7 +320,6 @@ class PomBissContactScreen(Screen):
     <widget name="line2" position="250,350" size="900,5"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
 
-    <!-- SUPPORT GROUP -->
     <widget name="sup_label" position="0,360" size="1400,38"
             font="Regular;24" transparent="1" foregroundColor="#ffff00"
             halign="center" valign="center" />
@@ -322,7 +333,6 @@ class PomBissContactScreen(Screen):
     <widget name="line3" position="250,475" size="900,5"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
 
-    <!-- FEEDS CHANNELS -->
     <widget name="feed_label" position="0,485" size="1400,38"
             font="Regular;24" transparent="1" foregroundColor="#ffff00"
             halign="center" valign="center" />
@@ -342,7 +352,6 @@ class PomBissContactScreen(Screen):
     <widget name="line4" position="250,670" size="900,5"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
 
-    <!-- YOUTUBE -->
     <widget name="yt_label" position="0,680" size="1400,38"
             font="Regular;24" transparent="1" foregroundColor="#ffff00"
             halign="center" valign="center" />
@@ -356,7 +365,6 @@ class PomBissContactScreen(Screen):
     <widget name="line5" position="250,795" size="900,5"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
 
-    <!-- GITHUB -->
     <widget name="gh_label" position="0,805" size="1400,38"
             font="Regular;24" transparent="1" foregroundColor="#ffff00"
             halign="center" valign="center" />
@@ -367,11 +375,9 @@ class PomBissContactScreen(Screen):
             font="Regular;20" transparent="1" foregroundColor="#00aaff"
             halign="center" valign="center" />
 
-    <!-- خط پایینی (آبی، قطور) -->
     <widget name="line_bot" position="50,925" size="1300,5"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
-    <!-- راهنما -->
     <widget name="help" position="0,935" size="1400,30"
             font="Regular;18" transparent="1" foregroundColor="#dddddd"
             halign="center" valign="center" />
@@ -382,15 +388,14 @@ class PomBissContactScreen(Screen):
         Screen.__init__(self, session)
         self.session = session
 
-        # ⭐ ۸ لینک (YouTube و GitHub جدا)
         self.links = [
-            "https://t.me/Shr776",                 # 0 - DEV
-            "https://t.me/VuSolo",                 # 1 - MAIN
-            "https://t.me/PomSat",                 # 2 - SUPPORT
-            "https://t.me/PomFeed",                # 3 - FEED1
-            "https://t.me/FeedHunter",             # 4 - FEED2
-            "https://www.youtube.com/@VUSOLO",     # 5 - YOUTUBE
-            "https://github.com/Shr776/PomBiss",   # 6 - GITHUB
+            "https://t.me/Shr776",
+            "https://t.me/VuSolo",
+            "https://t.me/PomSat",
+            "https://t.me/PomFeed",
+            "https://t.me/FeedHunter",
+            "https://www.youtube.com/@VUSOLO",
+            "https://github.com/Shr776/PomBiss",
         ]
         self.current_index = 0
 
@@ -499,7 +504,6 @@ class PomBissContactScreen(Screen):
             link = self.links[self.current_index]
             with open("/tmp/.pombiss_clipboard", "w") as f:
                 f.write(link)
-
             self.session.open(
                 MessageBox,
                 "✅ Link copied!\n\n%s" % link,
@@ -516,17 +520,19 @@ class PomBissContactScreen(Screen):
 
 
 # ============================================================
-# SCREEN 1 - POMBISS LIST
+# SCREEN 1 - POMBISS LIST v4.3 (PIP 800×450)
 # ============================================================
-
 class PomBissList(Screen):
-    """صفحه لیست فیدها - دو پنل"""
+    """صفحه لیست فیدها - v4.3 با PIP 800×450 (نسبت دقیق 16:9)"""
 
     PLUGIN_VERSION = updater.get_version()
 
     skinL = '''
 <screen name="PomBissList" position="center,center" size="1920,1080" title="PomBiss" flags="wfNoBorder" backgroundColor="#0a0a1a">
 
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- HEADER -->
+    <!-- ═══════════════════════════════════════════════════════ -->
     <widget source="global.CurrentTime" render="Label" position="1500,30" size="400,55"
             font="Regular;40" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center">
@@ -540,16 +546,19 @@ class PomBissList(Screen):
 
     <widget name="line_title_top" position="710,30" size="500,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
-    <ePixmap name="title_logo" position="860,25" size="200,80"
+    <ePixmap name="title_logo" position="860,40" size="200,80"
              pixmap="''' + plugin_dir + '''/PomBiss_logo.png"
              alphatest="on" zPosition="1" />
-    <widget name="line_title_bot" position="710,120" size="500,3"
+    <widget name="line_title_bot" position="710,125" size="500,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
     <widget name="version_label" position="50,98" size="780,30"
             font="Regular;18" transparent="1" foregroundColor="#00ffff"
             halign="center" valign="center" />
 
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- LEFT PANEL: FEED LIST -->
+    <!-- ═══════════════════════════════════════════════════════ -->
     <widget name="line_list_top" position="50,130" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
@@ -696,6 +705,7 @@ class PomBissList(Screen):
             font="Regular;19" transparent="1" foregroundColor="#ffffff"
             halign="left" valign="center" />
 
+    <!-- Page counter -->
     <widget name="line_page_top" position="50,820" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
     <widget name="page_counter" position="50,825" size="780,50"
@@ -704,84 +714,111 @@ class PomBissList(Screen):
     <widget name="line_page_bot" position="50,880" size="780,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
-    <widget name="line_cat_top" position="860,280" size="1010,3"
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- BUTTONS - RGB Order -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <widget name="btn_red_bg" position="60,895" size="180,60"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
-    <widget name="label_category" position="860,285" size="1010,90"
+    <widget name="key_red" position="60,895" size="180,60"
+            font="Regular;28" transparent="1" foregroundColor="#000000"
+            halign="center" valign="center" />
+
+    <widget name="btn_green_bg" position="260,895" size="180,60"
+            font="Regular;1" transparent="0" backgroundColor="#00ff00" />
+    <widget name="key_green" position="260,895" size="180,60"
+            font="Regular;28" transparent="1" foregroundColor="#000000"
+            halign="center" valign="center" />
+
+    <widget name="btn_yellow_bg" position="460,895" size="180,60"
+            font="Regular;1" transparent="0" backgroundColor="#ffff00" />
+    <widget name="key_yellow" position="460,895" size="180,60"
+            font="Regular;28" transparent="1" foregroundColor="#000000"
+            halign="center" valign="center" />
+
+    <widget name="btn_blue_bg" position="660,895" size="180,60"
+            font="Regular;1" transparent="0" backgroundColor="#00ccff" />
+    <widget name="key_blue" position="660,895" size="180,60"
+            font="Regular;28" transparent="1" foregroundColor="#000000"
+            halign="center" valign="center" />
+
+    <widget name="line_buttons_bot" position="50,975" size="780,3"
+            font="Regular;1" transparent="0" backgroundColor="#00ff00" />
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- RIGHT PANEL: LIVE PIP PREVIEW (800 × 450 - 16:9 دقیق) -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <widget source="session.VideoPicture" render="Pig" 
+            position="970,140" size="800,450" 
+            zPosition="30" backgroundColor="transparent"/>
+
+    <!-- حاشیه‌های کادر Preview -->
+    <widget name="preview_border_top" position="970,138" size="800,3"
+            font="Regular;1" transparent="0" backgroundColor="#00aaff" zPosition="31" />
+    <widget name="preview_border_bot" position="970,590" size="800,3"
+            font="Regular;1" transparent="0" backgroundColor="#00aaff" zPosition="31" />
+    <widget name="preview_border_left" position="967,138" size="3,456"
+            font="Regular;1" transparent="0" backgroundColor="#00aaff" zPosition="31" />
+    <widget name="preview_border_right" position="1767,138" size="3,456"
+            font="Regular;1" transparent="0" backgroundColor="#00aaff" zPosition="31" />
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- RIGHT PANEL: FEED DETAILS -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <widget name="line_cat_top" position="860,600" size="1010,3"
+            font="Regular;1" transparent="0" backgroundColor="#ff0000" />
+    <widget name="label_category" position="860,605" size="1010,55"
             font="Regular;22" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" />
-    <widget name="line_cat_bot" position="860,380" size="1010,3"
+    <widget name="line_cat_bot" position="860,660" size="1010,3"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
 
-    <widget name="line_sat_top" position="960,400" size="810,3"
+    <widget name="line_sat_top" position="960,670" size="810,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
-    <widget name="label_satellite" position="960,405" size="810,55"
+    <widget name="label_satellite" position="960,675" size="810,45"
             font="Regular;28" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" />
-    <widget name="line_sat_bot" position="960,465" size="810,3"
+    <widget name="line_sat_bot" position="960,720" size="810,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
-    <widget name="line_freq_top" position="910,485" size="910,3"
+    <widget name="line_freq_top" position="910,730" size="910,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
-    <widget name="label_frequency" position="910,490" size="910,55"
+    <widget name="label_frequency" position="910,735" size="910,45"
             font="Regular;26" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" />
-    <widget name="line_freq_bot" position="910,550" size="910,3"
+    <widget name="line_freq_bot" position="910,780" size="910,3"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
-    <widget name="line_id_top" position="910,570" size="910,3"
+    <widget name="line_id_top" position="910,790" size="910,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
-    <widget name="label_id" position="910,575" size="910,55"
+    <widget name="label_id" position="910,795" size="910,45"
             font="Regular;28" transparent="1" foregroundColor="#ffffff"
             halign="center" valign="center" />
-    <widget name="line_id_bot" position="910,635" size="910,3"
+    <widget name="line_id_bot" position="910,840" size="910,3"
             font="Regular;1" transparent="0" backgroundColor="#00ff00" />
 
-    <widget name="line_cw_top" position="860,655" size="1010,3"
+    <widget name="line_cw_top" position="860,850" size="1010,3"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
-    <widget name="label_cw" position="860,660" size="1010,60"
+    <widget name="label_cw" position="860,855" size="1010,55"
             font="Regular;32" transparent="1" foregroundColor="#00ff00"
             halign="center" valign="center" />
-    <widget name="line_cw_bot" position="860,725" size="1010,3"
+    <widget name="line_cw_bot" position="860,910" size="1010,3"
             font="Regular;1" transparent="0" backgroundColor="#ff0000" />
 
-    <widget name="label_datetime" position="860,740" size="1010,40"
+    <widget name="label_datetime" position="860,920" size="1010,30"
             font="Regular;20" transparent="1" foregroundColor="#00ffff"
             halign="center" valign="center" />
 
-    <widget name="btn_green_bg" position="970,850" size="160,55"
-            font="Regular;1" transparent="0" backgroundColor="#00ff00" />
-    <widget name="key_green" position="970,850" size="160,55"
-            font="Regular;28" transparent="1" foregroundColor="#000000"
-            halign="center" valign="center" />
-
-    <widget name="btn_blue_bg" position="1150,850" size="160,55"
-            font="Regular;1" transparent="0" backgroundColor="#00ccff" />
-    <widget name="key_blue" position="1150,850" size="160,55"
-            font="Regular;28" transparent="1" foregroundColor="#000000"
-            halign="center" valign="center" />
-
-    <widget name="btn_yellow_bg" position="1330,850" size="160,55"
-            font="Regular;1" transparent="0" backgroundColor="#ffff00" />
-    <widget name="key_yellow" position="1330,850" size="160,55"
-            font="Regular;28" transparent="1" foregroundColor="#000000"
-            halign="center" valign="center" />
-
-    <widget name="btn_red_bg" position="1510,850" size="160,55"
-            font="Regular;1" transparent="0" backgroundColor="#ff0000" />
-    <widget name="key_red" position="1510,850" size="160,55"
-            font="Regular;28" transparent="1" foregroundColor="#000000"
-            halign="center" valign="center" />
-
-    <widget name="line_brand_top" position="660,960" size="600,3"
+    <widget name="line_brand_top" position="960,965" size="810,2"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
-    <widget name="brand_label" position="660,970" size="600,50"
-            font="Regular;30" transparent="1" foregroundColor="#00ffff"
+    <widget name="brand_label" position="960,970" size="810,30"
+            font="Regular;24" transparent="1" foregroundColor="#00ffff"
             halign="center" valign="center" />
-    <widget name="line_brand_bot" position="660,1025" size="600,3"
+    <widget name="line_brand_bot" position="960,1002" size="810,2"
             font="Regular;1" transparent="0" backgroundColor="#00aaff" />
 
-    <widget name="nav_help" position="50,1040" size="1820,38"
-            font="Regular;22" transparent="1" foregroundColor="#dddddd"
+    <!-- Footer navigation help -->
+    <widget name="nav_help" position="50,1030" size="780,40"
+            font="Regular;18" transparent="1" foregroundColor="#dddddd"
             halign="center" valign="center" />
 
 </screen>'''
@@ -813,7 +850,6 @@ class PomBissList(Screen):
                 "yellow": self.update_plugin,
                 "red": self.cancel,
                 "cancel": self.cancel,
-
                 "menu": self.show_contact,
                 "help": self.show_contact,
                 "info": self.show_contact,
@@ -824,6 +860,9 @@ class PomBissList(Screen):
         for line in ["line_title_top", "line_title_bot",
                      "line_list_top", "line_list_bot",
                      "line_page_top", "line_page_bot",
+                     "line_buttons_bot",
+                     "preview_border_top", "preview_border_bot",
+                     "preview_border_left", "preview_border_right",
                      "line_cat_top", "line_cat_bot",
                      "line_sat_top", "line_sat_bot",
                      "line_freq_top", "line_freq_bot",
@@ -854,19 +893,23 @@ class PomBissList(Screen):
         self["label_cw"] = Label("")
         self["label_datetime"] = Label("")
 
-        self["btn_blue_bg"] = Label("")
+        self["preview_border_top"] = Label("")
+        self["preview_border_bot"] = Label("")
+        self["preview_border_left"] = Label("")
+        self["preview_border_right"] = Label("")
+
         self["btn_red_bg"] = Label("")
         self["btn_green_bg"] = Label("")
         self["btn_yellow_bg"] = Label("")
+        self["btn_blue_bg"] = Label("")
 
-        self["key_green"] = Label("SCAN")
-        self["key_blue"] = Label("Clear")
-        self["key_yellow"] = Label("Update")
         self["key_red"] = Label("EXIT")
+        self["key_green"] = Label("SCAN")
+        self["key_yellow"] = Label("Update")
+        self["key_blue"] = Label("Clear")
 
         self["nav_help"] = Label(
-            "Up/Down: Select  |  Left/Right: Page  |  OK: Scan  |  "
-            "MENU: Contact  |  BLUE: Clear  |  YELLOW: Update  |  RED: Exit"
+            "Up/Down: Select  |  Left/Right: Page  |  OK: Scan  |  MENU: Contact"
         )
 
         self.onLayoutFinish.append(self.download_feeds)
@@ -943,7 +986,6 @@ class PomBissList(Screen):
                     self["feed_sat_%d" % i].setText(sat_label)
                     self["feed_freq_%d" % i].setText("%s %s %s" % (freq, pol, sr))
                     self["feed_id_%d" % i].setText(feed_id)
-
                     try:
                         self["feed_num_%d" % i].instance.setForegroundColor(0xffff00)
                         self["feed_sat_%d" % i].instance.setForegroundColor(0xffff00)
@@ -956,7 +998,6 @@ class PomBissList(Screen):
                     self["feed_sat_%d" % i].setText(sat_label)
                     self["feed_freq_%d" % i].setText("%s %s %s" % (freq, pol, sr))
                     self["feed_id_%d" % i].setText(feed_id)
-
                     try:
                         self["feed_num_%d" % i].instance.setForegroundColor(0xffff00)
                         self["feed_sat_%d" % i].instance.setForegroundColor(0x00ff88)
@@ -1090,11 +1131,11 @@ class PomBissList(Screen):
 
         if removed == 0:
             self.session.open(MessageBox,
-                              "No PomBiss or Live Feed keys found in SoftCam.Key",
+                              "No PomBiss or Live Feed keys found",
                               MessageBox.TYPE_INFO, timeout=5)
             return
 
-        success_msg = "\u2705 %d keys removed successfully" % removed
+        success_msg = "✅ %d keys removed successfully" % removed
         log_debug(success_msg)
 
         try:
@@ -1155,8 +1196,8 @@ def _do_safe_restart(session):
 
     session.open(
         MessageBox,
-        "\u2705 Update installed successfully!\n\n"
-        "\U0001F504 Enigma2 will now restart.",
+        "✅ Update installed successfully!\n\n"
+        "🔄 Enigma2 will now restart.",
         MessageBox.TYPE_INFO,
         timeout=3
     )
