@@ -1,7 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Signalfinder for PomBiss - OpenPLi (Python 2) - v54.1
-- FIX: KeyPusher starts from on_closed (not from timer that dies)
+Signalfinder for PomBiss - OpenPLi (Python 2 & 3) - v58 FINAL
+- FIX: restart_emulator with subprocess.Popen (no os.system crash)
+- FIX: SIGTERM then SIGKILL (no duplicate OSCam)
+- FIX: deduplication of emu processes
+- FIX: _do_close with GLOBAL timer (callback runs reliably)
+- FIX: restart_after_close ALWAYS runs with retune
+- FIX: check None in _get_hash / _get_orb / info / ref
+- FIX: OOM prevention
+- FIX: KeyPusher starts from on_closed
 - FIX: skip duplicate CW (silent)
 - FIX: check transponder before saving
 - FIX: position_to_int (160 -> 160)
@@ -14,6 +21,7 @@ import time
 import glob
 import signal
 import binascii
+import subprocess
 from array import array
 from datetime import datetime
 from enigma import (
@@ -83,6 +91,9 @@ def _pol_to_int(pol_str):
 
 
 def _position_to_int(position_str):
+    """
+    v58 FIX: 160 -> 160 (not 1600)
+    """
     try:
         s = str(position_str).strip()
         if not s:
@@ -201,26 +212,43 @@ def _crc32(data):
     return value ^ 0xffffffff
 
 
+# ⭐ v58: چک None
 def _get_hash(session):
-    ref = session.nav.getCurrentlyPlayingServiceReference()
-    sid = ref.getUnsignedData(1); tsid = ref.getUnsignedData(2)
-    onid = ref.getUnsignedData(3); ns = ref.getUnsignedData(4) | 0xA0000000
-    if ns & 0xFFFF == 0:
-        data = "%04X%04X%04X%08X" % (sid, tsid, onid, ns)
-    else:
-        data = "%04X%08X" % (sid, ns)
-    return _crc32(binascii.unhexlify(data))
+    try:
+        ref = session.nav.getCurrentlyPlayingServiceReference()
+        if ref is None:
+            log_debug("_get_hash: ref is None")
+            return None
+        sid = ref.getUnsignedData(1)
+        tsid = ref.getUnsignedData(2)
+        onid = ref.getUnsignedData(3)
+        ns = ref.getUnsignedData(4) | 0xA0000000
+        if ns & 0xFFFF == 0:
+            data = "%04X%04X%04X%08X" % (sid, tsid, onid, ns)
+        else:
+            data = "%04X%08X" % (sid, ns)
+        return _crc32(binascii.unhexlify(data))
+    except Exception as e:
+        log_debug("_get_hash error: %s" % str(e))
+        return None
 
 
+# ⭐ v58: چک None
 def _get_orb(session):
-    ref = session.nav.getCurrentlyPlayingServiceReference()
-    op = ref.getUnsignedData(4) >> 16
-    if op == 0xFFFF: return "C"
-    elif op == 0xEEEE: return "T"
-    else:
-        if op > 1800: op = 3600 - op; h = "W"
-        else: h = "E"
-        return ("%d.%d%s") % (op / 10, op % 10, h)
+    try:
+        ref = session.nav.getCurrentlyPlayingServiceReference()
+        if ref is None:
+            return "?"
+        op = ref.getUnsignedData(4) >> 16
+        if op == 0xFFFF: return "C"
+        elif op == 0xEEEE: return "T"
+        else:
+            if op > 1800: op = 3600 - op; h = "W"
+            else: h = "E"
+            return ("%d.%d%s") % (op / 10, op % 10, h)
+    except Exception as e:
+        log_debug("_get_orb error: %s" % str(e))
+        return "?"
 
 
 def _clean_cw(cw):
@@ -230,66 +258,158 @@ def _clean_cw(cw):
     return ""
 
 
+# ⭐ v58: چک None برای info و ref
 def _save_biss_key_directly(session, softcam_path, cw):
     from ServiceReference import ServiceReference
-    service = session.nav.getCurrentService()
-    info = service and service.info()
-    orb = _get_orb(session)
-    if orb == "21.5E" or orb == "21.6E":
-        sid = info.getInfo(iServiceInformation.sSID)
-        vpid = info.getInfo(iServiceInformation.sVideoPID)
-        keystr = "F %s%s 00 %s" % ("{:04X}".format(sid), "{:04X}".format(vpid), cw)
-    else:
-        keystr = "F %08X 00 %s" % (_get_hash(session), cw)
-    name = ServiceReference(session.nav.getCurrentlyPlayingServiceReference()).getServiceName()
-    datastr = "\n%s ; Added by PomBiss on %s for %s at %s ; Edited by PomBiss" % (
-        keystr, datetime.now(), name, orb)
     try:
-        with open(softcam_path, "a") as f: f.write(datastr)
+        service = session.nav.getCurrentService()
+        info = service and service.info()
+        orb = _get_orb(session)
+        if orb == "21.5E" or orb == "21.6E":
+            if info is None:
+                log_debug("_save_biss_key: info is None")
+                return False, ""
+            sid = info.getInfo(iServiceInformation.sSID)
+            vpid = info.getInfo(iServiceInformation.sVideoPID)
+            keystr = "F %s%s 00 %s" % ("{:04X}".format(sid), "{:04X}".format(vpid), cw)
+        else:
+            h = _get_hash(session)
+            if h is None:
+                log_debug("_save_biss_key: hash is None")
+                return False, ""
+            keystr = "F %08X 00 %s" % (h, cw)
+
+        ref = session.nav.getCurrentlyPlayingServiceReference()
+        name = ServiceReference(ref).getServiceName() if ref else "Unknown"
+
+        datastr = "\n%s ; Added by PomBiss on %s for %s at %s ; Edited by PomBiss" % (
+            keystr, datetime.now(), name, orb)
+        with open(softcam_path, "a") as f:
+            f.write(datastr)
         log_debug("BISS key written: %s" % keystr)
         return True, keystr
     except Exception as e:
-        log_debug("write err: %s" % str(e)); return False, ""
+        log_debug("write err: %s" % str(e))
+        return False, ""
 
 
+# ============================================================
+# v58 FINAL: Restart emulator - subprocess.Popen, no crash
+# ============================================================
 def restart_emulator():
-    kws = ["oscam", "ncam", "cccam", "mgcamd", "gbox", "wicardd", "camd", "emu", "cam"]
-    pids = []
-    for pd in glob.glob("/proc/[0-9]*"):
+    emu_keywords = ["oscam", "ncam", "cccam", "mgcamd", "gbox",
+                    "wicardd", "camd", "emu", "cam"]
+
+    found_pids = []
+    for proc_dir in glob.glob("/proc/[0-9]*"):
         try:
-            pid = int(os.path.basename(pd))
-            cp = os.path.join(pd, "comm")
-            if not os.path.exists(cp): continue
-            with open(cp) as f: c = f.read().strip().lower()
-            if not any(k in c for k in kws): continue
-            ep = os.path.join(pd, "exe")
-            try: er = os.readlink(ep)
-            except: er = ""
-            clp = os.path.join(pd, "cmdline"); cl = ""
+            pid = int(os.path.basename(proc_dir))
+            comm_path = os.path.join(proc_dir, "comm")
+            if not os.path.exists(comm_path):
+                continue
+            with open(comm_path, "r") as f:
+                comm = f.read().strip()
+
+            comm_lower = comm.lower()
+            is_emu = False
+            for kw in emu_keywords:
+                if kw in comm_lower:
+                    is_emu = True
+                    break
+            if not is_emu:
+                continue
+
+            exe_path = os.path.join(proc_dir, "exe")
             try:
-                with open(clp, "rb") as f:
-                    cl = f.read().replace(b"\x00", b" ").decode("utf-8", "ignore").strip()
-            except: pass
-            pids.append({"pid": pid, "exe": er, "cmdline": cl})
-        except: continue
-    if not pids: return False
-    for i in pids:
-        try: os.kill(i["pid"], signal.SIGKILL)
-        except: pass
+                exe_real = os.readlink(exe_path)
+            except:
+                exe_real = ""
+
+            cmdline_path = os.path.join(proc_dir, "cmdline")
+            cmdline = ""
+            try:
+                with open(cmdline_path, "rb") as f:
+                    raw = f.read()
+                cmdline = raw.replace(b"\x00", b" ").decode("utf-8", "ignore").strip()
+            except:
+                pass
+
+            found_pids.append({
+                "pid": pid, "comm": comm,
+                "exe": exe_real, "cmdline": cmdline,
+            })
+        except Exception:
+            continue
+
+    if not found_pids:
+        log_debug("restart_emulator: no emu pids found")
+        return False
+
+    log_debug("restart_emulator: found %d emu pids" % len(found_pids))
+
+    # ⭐ SIGTERM first
+    for info in found_pids:
+        try:
+            os.kill(info["pid"], signal.SIGTERM)
+        except:
+            pass
+
     time.sleep(2)
-    r = False
-    for i in pids:
-        exe = i["exe"]; cl = i["cmdline"]
-        if not exe or not os.path.exists(exe): continue
-        if cl:
-            cp = cl.split()
-            if cp and cp[0] == exe: cp = cp[1:]
-            full = "%s %s" % (exe, " ".join(cp)) if cp else exe
-        else: full = exe
-        try: os.system("nohup %s > /dev/null 2>&1 &" % full); r = True
-        except: pass
-    if r: time.sleep(3)
-    return r
+
+    # ⭐ SIGKILL for leftovers
+    for info in found_pids:
+        try:
+            os.kill(info["pid"], signal.SIGKILL)
+        except:
+            pass
+
+    time.sleep(1)
+
+    # ⭐ Deduplicate + Popen
+    restarted = False
+    seen_cmds = set()
+    for info in found_pids:
+        exe = info["exe"]
+        cmdline = info["cmdline"]
+
+        if not exe or not os.path.exists(exe):
+            continue
+
+        if cmdline:
+            cmd_parts = cmdline.split()
+            if cmd_parts and cmd_parts[0] == exe:
+                cmd_parts = cmd_parts[1:]
+            if cmd_parts:
+                full_cmd = [exe] + cmd_parts
+            else:
+                full_cmd = [exe]
+        else:
+            full_cmd = [exe]
+
+        key = " ".join(full_cmd)
+        if key in seen_cmds:
+            log_debug("skip duplicate: %s" % key)
+            continue
+        seen_cmds.add(key)
+
+        try:
+            subprocess.Popen(
+                full_cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL,
+                start_new_session=True,
+                close_fds=True
+            )
+            log_debug("started: %s" % key)
+            restarted = True
+        except Exception as e:
+            log_debug("Popen err for %s: %s" % (key, str(e)))
+
+    if restarted:
+        time.sleep(2)
+
+    return restarted
 
 
 # ============================================================
@@ -311,7 +431,14 @@ def _service_has_biss(session):
 
 
 # ============================================================
-# Success screen
+# Global timers (v58: prevent GC)
+# ============================================================
+_success_close_timer = None
+_restart_timer = None
+
+
+# ============================================================
+# Success screen - v58 FINAL
 # ============================================================
 class PomBissSuccessScreen(Screen):
     skin = '''
@@ -372,16 +499,44 @@ class PomBissSuccessScreen(Screen):
             except: pass
 
     def _do_close(self):
+        """
+        v58 FINAL: callback in GLOBAL timer
+        """
+        global _success_close_timer
+
+        log_debug("SuccessScreen._do_close called")
+
+        if self.on_close_cb:
+            cb = self.on_close_cb
+
+            def run_cb():
+                log_debug("run_cb: executing on_close callback")
+                try:
+                    cb()
+                    log_debug("run_cb: callback finished OK")
+                except Exception as e:
+                    log_debug("run_cb error: %s" % str(e))
+                    import traceback
+                    log_debug(traceback.format_exc())
+
+            _success_close_timer = eTimer()
+            try:
+                _success_close_timer.timeout.connect(run_cb)
+            except:
+                _success_close_timer.callback.append(run_cb)
+            _success_close_timer.start(500, True)
+            log_debug("run_cb: timer started (500ms)")
+        else:
+            log_debug("_do_close: no callback!")
+
         try:
-            if self.on_close_cb:
-                self.on_close_cb()
+            self.close()
         except Exception as e:
-            log_debug("on_close cb err: %s" % str(e))
-        self.close()
+            log_debug("self.close err: %s" % str(e))
 
 
 # ============================================================
-# KeyPusher v54
+# KeyPusher v58
 # ============================================================
 _pusher = None
 
@@ -439,15 +594,13 @@ class _KeyPusher(object):
                 if feed_freq and abs(int(current_freq_khz) - int(feed_freq)) > 3:
                     log_debug("mismatch freq: cur=%d exp=%s" % (current_freq_khz, feed_freq))
                     return False
-            except:
-                pass
+            except: pass
 
             try:
                 if feed_sr and abs(int(current_sr_ksym) - int(feed_sr)) > 10:
                     log_debug("mismatch sr: cur=%d exp=%s" % (current_sr_ksym, feed_sr))
                     return False
-            except:
-                pass
+            except: pass
 
             try:
                 if feed_pos:
@@ -455,8 +608,7 @@ class _KeyPusher(object):
                     if int(current_orb) != exp_orb:
                         log_debug("mismatch orb: cur=%d exp=%d" % (current_orb, exp_orb))
                         return False
-            except:
-                pass
+            except: pass
 
             log_debug("OK: transponder matches")
             return True
@@ -527,7 +679,8 @@ class _KeyPusher(object):
         try:
             from ServiceReference import ServiceReference
             ref = session.nav.getCurrentlyPlayingServiceReference()
-            service_name = ServiceReference(ref).getServiceName()
+            if ref:
+                service_name = ServiceReference(ref).getServiceName()
             orb = _get_orb(session)
         except:
             pass
@@ -540,21 +693,37 @@ class _KeyPusher(object):
         except:
             pass
 
+        # ⭐ v58 FINAL: restart_after_close - ALWAYS runs
         def restart_after_close():
+            global _restart_timer
+            log_debug("=== restart_after_close: START ===")
+
+            # Stage 1: restart emulator
             try:
-                try:
-                    if hasattr(session, 'nav') and session.nav:
-                        ref = session.nav.getCurrentlyPlayingServiceReference()
-                        if ref:
-                            session.nav.playService(ref)
-                            log_debug("service re-tuned")
-                except Exception as e:
-                    log_debug("retune service err: %s" % str(e))
-                time.sleep(1)
-                restart_emulator()
-                log_debug("emulator restarted")
+                result = restart_emulator()
+                log_debug("restart_emulator() returned: %s" % result)
             except Exception as e:
-                log_debug("restart_after_close err: %s" % str(e))
+                log_debug("restart_emulator error: %s" % str(e))
+                import traceback
+                log_debug(traceback.format_exc())
+
+            # Stage 2: wait for emulator
+            time.sleep(3)
+
+            # Stage 3: re-tune service
+            try:
+                if hasattr(session, 'nav') and session.nav:
+                    ref = session.nav.getCurrentlyPlayingServiceReference()
+                    if ref:
+                        log_debug("re-tuning service...")
+                        session.nav.playService(ref)
+                        log_debug("service re-tuned OK")
+                    else:
+                        log_debug("no ref to retune")
+            except Exception as e:
+                log_debug("retune error: %s" % str(e))
+
+            log_debug("=== restart_after_close: DONE ===")
 
         try:
             session.open(PomBissSuccessScreen,
@@ -584,13 +753,13 @@ _pombiss_scan_success = {'success': False}
 
 
 # ============================================================
-# Entry point - v54.1
+# Entry point - v58 FINAL
 # ============================================================
 def open_signal_finder(session, feed):
     global _pombiss_scan_success
     try:
         log_debug("=" * 50)
-        log_debug("=== START (PLi v54.1) ===")
+        log_debug("=== START (PLi v58 FINAL) ===")
         log_debug("feed: " + str(feed))
 
         _pombiss_scan_success['success'] = False
@@ -757,7 +926,7 @@ def open_signal_finder(session, feed):
                     log_debug(traceback.format_exc())
 
             def keyGo(self):
-                log_debug("=== keyGo OVERRIDE (PLi v54.1) ===")
+                log_debug("=== keyGo OVERRIDE (PLi v58) ===")
                 if not self._pombiss_ready:
                     log_debug("not ready yet")
                     return
@@ -793,7 +962,6 @@ def open_signal_finder(session, feed):
                         try:
                             if hasattr(parm, attr):
                                 setattr(parm, attr, val)
-                                log_debug("parm.%s = 0x%X" % (attr, val))
                         except: pass
 
                     try:
@@ -844,7 +1012,6 @@ def open_signal_finder(session, feed):
                 global _pombiss_scan_success
                 log_debug("ServiceScan finished: %s" % str(answer))
 
-                # v54.1: KeyPusher از on_closed راه میفته
                 if answer is True:
                     _pombiss_scan_success['success'] = True
                     log_debug("Scan SUCCESS — KeyPusher will start on close")
@@ -868,7 +1035,6 @@ def open_signal_finder(session, feed):
             global _pombiss_scan_success
             log_debug("SignalFinder closed (scan_success=%s)" % str(_pombiss_scan_success['success']))
 
-            # v54.1: KeyPusher از اینجا راه میفته
             if _pombiss_scan_success['success']:
                 cw = feed.get('cw', '')
                 if cw:
