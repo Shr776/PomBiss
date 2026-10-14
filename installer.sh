@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # ============================================================
-#   PomBiss Plugin Installer v2.1
+#   PomBiss Plugin Installer v2.3
 # ============================================================
 #
 #   🎯 Sports Feed Viewer for Enigma2
@@ -12,6 +12,8 @@
 #     ✔ OpenATV 7.6
 #     ✔ OpenATV 8.0
 #     ✔ OpenPLi 8.3
+#     ✔ OpenPLi 9.2
+#     ✔ Egami 11.2
 #
 #   🌐 GitHub:
 #     https://github.com/Shr776/PomBiss
@@ -29,7 +31,7 @@
 
 # --- تنظیمات ---
 PLUGIN_NAME="PomBiss"
-PLUGIN_VERSION="2.1"
+PLUGIN_VERSION="2.3"
 PLUGIN_DIR="/usr/lib/enigma2/python/Plugins/Extensions/PomBiss"
 GITHUB_RAW="https://raw.githubusercontent.com/Shr776/PomBiss/main"
 TEMP_DIR="/tmp/pombiss_install"
@@ -46,6 +48,8 @@ echo "   ✔ OpenBlackHole 6"
 echo "   ✔ OpenATV 7.6"
 echo "   ✔ OpenATV 8.0"
 echo "   ✔ OpenPLi 8.3"
+echo "   ✔ OpenPLi 9.2"
+echo "   ✔ Egami 11.2"
 echo ""
 echo " Installing to: $PLUGIN_DIR"
 echo " Log file: $LOG_FILE"
@@ -121,8 +125,8 @@ for file in $(ls "$TEMP_DIR/files/"); do
     cp -f "$TEMP_DIR/files/$file" "$PLUGIN_DIR/$file" 2>/dev/null
 done
 
-# --- پاک کردن .pyo قدیمی ---
-echo "🗑 Removing old .pyo files..."
+# --- پاک کردن .pyo و .pyc قدیمی ---
+echo "🗑 Removing old .pyo / .pyc files..."
 rm -f "$PLUGIN_DIR"/*.pyo 2>/dev/null
 rm -f "$PLUGIN_DIR"/*.pyc 2>/dev/null
 
@@ -139,16 +143,45 @@ echo "=========================================="
 echo "  📌 Version: $NEW_VERSION"
 echo "  📁 Path: $PLUGIN_DIR"
 echo ""
-echo "🔄 Please restart Enigma2:"
-echo "   init 4 && sleep 2 && init 3"
+
+# --- پیام کانال تلگرام با مکث ۳ ثانیه ---
 echo ""
-echo "💬 Telegram: https://t.me/VuSolo"
+echo "╔══════════════════════════════════════════╗"
+echo "║                                          ║"
+echo "║          💬  @VUSOLO                     ║"
+echo "║                                          ║"
+echo "║          🎯  JOIN US                     ║"
+echo "║                                          ║"
+echo "║    https://t.me/VuSolo                   ║"
+echo "║                                          ║"
+echo "╚══════════════════════════════════════════╝"
+echo ""
+echo "🔄 Restarting Enigma2 in 3 seconds..."
+sleep 1
+echo "   2..."
+sleep 1
+echo "   1..."
+sleep 1
+echo "   🔄 Restarting now!"
 echo ""
 
 # --- ساخت flag برای ریستارت خودکار از پلاگین ---
 if [ -f /tmp/pombiss_from_plugin ]; then
     echo "🔁 Restart flag created for plugin update"
     touch /tmp/pombiss_need_restart
+fi
+
+# --- ریستارت Enigma2 ---
+if [ -f /tmp/pombiss_from_plugin ]; then
+    # اگه از داخل پلاگین اجرا شده، فقط flag می‌ذاریم
+    # (پلاگین خودش TryQuitMainloop رو صدا می‌زنه)
+    :
+else
+    # اگه از تلنت اجرا شده، خودمون Enigma2 رو ریستارت می‌کنیم
+    echo "🚀 Restarting Enigma2..."
+    init 4 >/dev/null 2>&1
+    sleep 2
+    init 3 >/dev/null 2>&1
 fi
 
 # --- پاکسازی ---
