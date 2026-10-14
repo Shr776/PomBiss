@@ -19,7 +19,10 @@
 #     https://github.com/Shr776/PomBiss
 #
 #   💬 Telegram:
-#     https://t.me/VuSolo
+#     📢 Main:      https://t.me/VuSolo
+#     📡 Feeds:     https://t.me/PomFeed
+#     💬 Support:   https://t.me/PomSat
+#     👨‍💻 Developer: https://t.me/Shr776
 #
 #   📥 Installation (Telnet):
 #     wget -q --no-check-certificate https://raw.githubusercontent.com/Shr776/PomBiss/main/installer.sh -O - | /bin/sh
@@ -31,7 +34,7 @@
 
 # --- تنظیمات ---
 PLUGIN_NAME="PomBiss"
-PLUGIN_VERSION="2.3"
+PLUGIN_VERSION="2.4"
 PLUGIN_DIR="/usr/lib/enigma2/python/Plugins/Extensions/PomBiss"
 GITHUB_RAW="https://raw.githubusercontent.com/Shr776/PomBiss/main"
 TEMP_DIR="/tmp/pombiss_install"
@@ -144,19 +147,33 @@ echo "  📌 Version: $NEW_VERSION"
 echo "  📁 Path: $PLUGIN_DIR"
 echo ""
 
-# --- پیام کانال تلگرام با مکث ۳ ثانیه ---
+# --- پیام کانال‌های تلگرام با مکث ۵ ثانیه ---
 echo ""
-echo "╔══════════════════════════════════════════╗"
-echo "║                                          ║"
-echo "║          💬  @VUSOLO                     ║"
-echo "║                                          ║"
-echo "║          🎯  JOIN US                     ║"
-echo "║                                          ║"
-echo "║    https://t.me/VuSolo                   ║"
-echo "║                                          ║"
-echo "╚══════════════════════════════════════════╝"
+echo "╔══════════════════════════════════════════════════════╗"
+echo "║                                                      ║"
+echo "║              💬  JOIN US ON TELEGRAM                 ║"
+echo "║                                                      ║"
+echo "╠══════════════════════════════════════════════════════╣"
+echo "║                                                      ║"
+echo "║   📢 Main Channel:      @VUSOLO                      ║"
+echo "║                         https://t.me/VuSolo          ║"
+echo "║                                                      ║"
+echo "║   📡 Feeds Channel:     @PomFeed                     ║"
+echo "║                         https://t.me/PomFeed         ║"
+echo "║                                                      ║"
+echo "║   💬 Support Group:     @PomSat                      ║"
+echo "║                         https://t.me/PomSat          ║"
+echo "║                                                      ║"
+echo "║   👨‍💻 Developer:        @Shr776                      ║"
+echo "║                         https://t.me/Shr776          ║"
+echo "║                                                      ║"
+echo "╚══════════════════════════════════════════════════════╝"
 echo ""
-echo "🔄 Restarting Enigma2 in 3 seconds..."
+echo "🔄 Restarting Enigma2 in 5 seconds..."
+sleep 1
+echo "   4..."
+sleep 1
+echo "   3..."
 sleep 1
 echo "   2..."
 sleep 1
