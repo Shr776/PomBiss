@@ -1,10 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-Signalfinder for PomBiss - OpenBlackHole - v54
-- FIX: syntax error (unterminated string)
-- FIX: position_to_int (160 -> 160)
-- FIX: tuner/frontend wait with eTimer
-- FIX: reconcile - skip duplicate CW (silent)
+Signalfinder for PomBiss - OpenBlackHole - v59.1 FINAL
+- FIX: restart_emulator with subprocess.Popen (no os.system crash)
+- FIX: SIGTERM then SIGKILL (no duplicate OSCam)
+- FIX: deduplication of emu processes
+- FIX: _find_sat_index with more position formats
+- FIX: fallback sat_idx by name
+- FIX: _do_close with GLOBAL timer (callback runs reliably)
+- FIX: restart_after_close ALWAYS runs
+- FIX: auto retune service AFTER emulator restart
+- FIX: OOM prevention
+- NEW: save_service_reference for M3U export
+- v59.1: display_name field for cleaner M3U channel names
+- v59.1: better feed_key sanitization
 """
 
 import sys
@@ -14,6 +22,8 @@ import time
 import glob
 import signal
 import binascii
+import subprocess
+import json
 from array import array
 from datetime import datetime
 from enigma import (
@@ -85,7 +95,7 @@ def _pol_to_int(pol_str):
 
 def _position_to_int(position_str):
     """
-    v54 FIX: 160 -> 160 (not 1600)
+    v59: 160 -> 160 (not 1600)
     """
     try:
         s = str(position_str).strip()
@@ -119,23 +129,66 @@ def _get_tuner():
 
 
 def _normalize_name(s):
-    return str(s).upper().replace(" ", "").replace("(", "").replace(")", "").replace("-", "").replace(".", "")
+    return str(s).upper().replace(" ", "").replace("(", "").replace(")", "").replace("-", "").replace(".", "").replace("°", "")
 
 
 def _find_sat_index(feid, satpos, sat_name=""):
+    """
+    v59: پیدا کردن sat_idx با فرمت‌های بیشتر
+    """
     try:
         sat_list = nimmanager.getSatListForNim(feid)
         if not sat_list:
             log_debug("no sat list for nim %d" % feid)
             return None
 
+        log_debug("=== SAT LIST for nim %d (total=%d) ===" % (feid, len(sat_list)))
+        for idx, sat in enumerate(sat_list[:30]):
+            log_debug("  sat[%d] = %s" % (idx, str(sat)))
+
+        pos_variants = set()
+        try:
+            sp = int(satpos)
+            pos_variants.add(sp)
+            pos_variants.add(sp * 10)
+            pos_variants.add(sp * 100)
+            if sp >= 360:
+                pos_variants.add(sp // 10)
+                pos_variants.add(sp // 100)
+            pos_variants.add(sp % 3600)
+            pos_variants.add(sp % 360)
+        except:
+            pass
+
+        log_debug("pos_variants = %s" % str(sorted(pos_variants)))
+
         matches = []
         for idx, sat in enumerate(sat_list):
-            if int(sat[0]) == int(satpos):
-                matches.append((idx, sat[0], sat[1] if len(sat) > 1 else ""))
+            try:
+                sat_pos_raw = sat[0]
+                if isinstance(sat_pos_raw, str):
+                    sat_pos = int(float(sat_pos_raw))
+                else:
+                    sat_pos = int(sat_pos_raw)
+
+                matched = False
+                for pv in pos_variants:
+                    if sat_pos == pv:
+                        matched = True
+                        break
+                    if pv != 0 and (sat_pos // 10 == pv or sat_pos * 10 == pv):
+                        matched = True
+                        break
+
+                if matched:
+                    sat_name_str = sat[1] if len(sat) > 1 else ""
+                    matches.append((idx, sat_pos, sat_name_str))
+                    log_debug("  MATCH: idx=%d pos=%d name=%s" % (idx, sat_pos, sat_name_str))
+            except Exception as e:
+                continue
 
         if not matches:
-            log_debug("no sat found for pos=%d" % satpos)
+            log_debug("no sat found for pos=%d (tried %s)" % (satpos, str(sorted(pos_variants))))
             return None
 
         if len(matches) == 1:
@@ -143,38 +196,35 @@ def _find_sat_index(feid, satpos, sat_name=""):
                 matches[0][0], matches[0][1], matches[0][2]))
             return matches[0][0]
 
-        log_debug("multiple sats match pos=%d, using name='%s'" % (
-            satpos, sat_name))
+        log_debug("multiple sats match (%d), using name='%s'" % (len(matches), sat_name))
 
-        pos_number = satpos // 100
-        pos_decimal = satpos % 100
+        target_norm = _normalize_name(sat_name)
+        for idx, pos, name in matches:
+            name_norm = _normalize_name(name)
+            for word in target_norm.split():
+                if len(word) >= 3 and word in name_norm:
+                    log_debug("MATCH by word '%s': idx=%d name=%s" % (word, idx, name))
+                    return idx
+
+        pos_number = int(satpos) // 100
+        pos_decimal = int(satpos) % 100
 
         for idx, pos, name in matches:
             name_upper = str(name).upper()
-            name_norm = _normalize_name(name)
             name_numbers = re.findall(r'\d+', name_upper)
 
             if str(pos_number) in name_numbers:
                 if pos_decimal == 0:
-                    log_debug("MATCH by int+decimal0: idx=%d pos=%d name=%s" % (
-                        idx, pos, name))
+                    log_debug("MATCH by int+decimal0: idx=%d name=%s" % (idx, name))
                     return idx
                 else:
                     dec_str = str(pos_decimal).rstrip('0')
                     if dec_str and dec_str in ''.join(name_numbers):
-                        log_debug("MATCH by decimal: idx=%d pos=%d name=%s" % (
-                            idx, pos, name))
+                        log_debug("MATCH by decimal: idx=%d name=%s" % (idx, name))
                         return idx
 
-            target_norm = _normalize_name(sat_name)
-            for word in target_norm.split():
-                if len(word) >= 4 and word in name_norm:
-                    log_debug("MATCH by word '%s': idx=%d pos=%d name=%s" % (
-                        word, idx, pos, name))
-                    return idx
-
-        log_debug("WARNING: no name match, using first: idx=%d pos=%d name=%s" % (
-            matches[0][0], matches[0][1], matches[0][2]))
+        log_debug("WARNING: no name match, using first: idx=%d name=%s" % (
+            matches[0][0], matches[0][2]))
         return matches[0][0]
 
     except Exception as e:
@@ -251,7 +301,6 @@ def _crc32(data):
 
 
 def _get_hash_from_ref(ref):
-    """hash from ServiceReference"""
     try:
         sid = ref.getUnsignedData(1)
         tsid = ref.getUnsignedData(2)
@@ -270,11 +319,15 @@ def _get_hash_from_ref(ref):
 
 def _get_hash(session):
     ref = session.nav.getCurrentlyPlayingServiceReference()
+    if ref is None:
+        return None
     return _get_hash_from_ref(ref)
 
 
 def _get_orb(session):
     ref = session.nav.getCurrentlyPlayingServiceReference()
+    if ref is None:
+        return "?"
     orbpos = ref.getUnsignedData(4) >> 16
     if orbpos == 0xFFFF:
         return "C"
@@ -300,6 +353,8 @@ def _get_service_info(session):
     try:
         from ServiceReference import ServiceReference
         ref = session.nav.getCurrentlyPlayingServiceReference()
+        if ref is None:
+            return {"name": "Unknown", "orb": "?"}
         name = ServiceReference(ref).getServiceName()
         orb = _get_orb(session)
         return {"name": name, "orb": orb}
@@ -328,6 +383,8 @@ def _save_biss_key_directly(session, softcam_path, cw):
     orb = _get_orb(session)
 
     if orb == "21.5E" or orb == "21.6E":
+        if info is None:
+            return False, ""
         sid = info.getInfo(iServiceInformation.sSID)
         vpid = info.getInfo(iServiceInformation.sVideoPID)
         sid_part = "{:04X}".format(sid)
@@ -339,7 +396,12 @@ def _save_biss_key_directly(session, softcam_path, cw):
             return False, ""
         keystr = "F %08X 00 %s" % (h, cw)
 
-    name = ServiceReference(session.nav.getCurrentlyPlayingServiceReference()).getServiceName()
+    try:
+        ref = session.nav.getCurrentlyPlayingServiceReference()
+        name = ServiceReference(ref).getServiceName() if ref else "Unknown"
+    except:
+        name = "Unknown"
+
     datastr = "\n%s ; Added by PomBiss on %s for %s at %s ; Edited by PomBiss" % (
         keystr, datetime.now(), name, orb)
 
@@ -354,7 +416,94 @@ def _save_biss_key_directly(session, softcam_path, cw):
 
 
 # ============================================================
-# Restart emulator
+# ⭐ v59.1: Save Service Reference for M3U (with display_name)
+# ============================================================
+def save_service_reference(session, feed, service_ref):
+    """
+    v59.1: ذخیره Service Reference توی فایل JSON برای M3U
+    - service_ref خام ذخیره می‌شه (URL-encode توی plugin.py)
+    - display_name اضافه شده برای اسم کوتاه M3U
+    - feed_key تمیزتر می‌شه
+    """
+    SERVICES_PATH = "/media/hdd/PomBiss_services.json"
+    SERVICES_DIR = "/media/hdd"
+    
+    try:
+        log_debug("=== save_service_reference START ===")
+        log_debug("service_ref: %s" % service_ref)
+        log_debug("feed_id: %s" % feed.get("feed_id", ""))
+        log_debug("feed name: %s" % feed.get("name", ""))
+        
+        # اطمینان از وجود پوشه
+        if not os.path.exists(SERVICES_DIR):
+            try:
+                os.makedirs(SERVICES_DIR)
+            except Exception as e:
+                log_debug("mkdir error: %s" % str(e))
+                return False
+        
+        # خواندن فایل موجود
+        services = {}
+        if os.path.exists(SERVICES_PATH):
+            try:
+                with open(SERVICES_PATH, "r") as f:
+                    services = json.load(f)
+            except Exception as e:
+                log_debug("JSON read error: %s" % str(e))
+                services = {}
+        
+        # ⭐ ساخت کلید یکتا (اولویت: feed_id -> name -> timestamp)
+        feed_key = feed.get("feed_id", "").strip()
+        if not feed_key:
+            feed_key = feed.get("name", "").strip()
+        if not feed_key:
+            feed_key = "feed_%s" % datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # پاکسازی کلید
+        feed_key = feed_key.replace(" ", "_").replace("/", "_")
+        feed_key = re.sub(r'[^\w\-]', '_', feed_key)
+        feed_key = feed_key[:80]  # محدودیت طول
+        
+        # ⭐ نام نمایشی برای M3U
+        display_name = feed.get("feed_id", "").strip()
+        if not display_name:
+            display_name = feed.get("name", "").strip()
+        
+        # محدود کردن طول نام نمایشی
+        if len(display_name) > 100:
+            display_name = display_name[:97] + "..."
+        
+        # ⭐ ساختار جدید JSON
+        services[feed_key] = {
+            "service_ref": str(service_ref),   # خام - URL-encode توی plugin.py
+            "name": feed.get("name", "Unknown Feed"),
+            "display_name": display_name,       # ⭐ نام کوتاه برای M3U
+            "sat": feed.get("sat", ""),
+            "position": feed.get("position", ""),
+            "freq": feed.get("freq", ""),
+            "pol": feed.get("pol", ""),
+            "sr": feed.get("sr", ""),
+            "cw": feed.get("cw", ""),
+            "feed_id": feed.get("feed_id", ""),
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        
+        # نوشتن فایل
+        with open(SERVICES_PATH, "w") as f:
+            json.dump(services, f, indent=2, ensure_ascii=False)
+        
+        log_debug("Service saved: %s (total=%d)" % (feed_key, len(services)))
+        return True
+        
+    except Exception as e:
+        log_debug("save_service_reference error: %s" % str(e))
+        import traceback
+        log_debug(traceback.format_exc())
+        return False
+
+
+# ============================================================
+# v59: Restart emulator - subprocess.Popen, no crash, no dup
 # ============================================================
 def restart_emulator():
     emu_keywords = ["oscam", "ncam", "cccam", "mgcamd", "gbox",
@@ -402,17 +551,32 @@ def restart_emulator():
             continue
 
     if not found_pids:
+        log_debug("restart_emulator: no emu pids found")
         return False
 
+    log_debug("restart_emulator: found %d emu pids" % len(found_pids))
+
+    # ⭐ SIGTERM first
+    for info in found_pids:
+        try:
+            os.kill(info["pid"], signal.SIGTERM)
+        except:
+            pass
+
+    time.sleep(2)
+
+    # ⭐ SIGKILL for leftovers
     for info in found_pids:
         try:
             os.kill(info["pid"], signal.SIGKILL)
         except:
             pass
 
-    time.sleep(2)
+    time.sleep(1)
 
+    # ⭐ Deduplicate + Popen
     restarted = False
+    seen_cmds = set()
     for info in found_pids:
         exe = info["exe"]
         cmdline = info["cmdline"]
@@ -425,20 +589,34 @@ def restart_emulator():
             if cmd_parts and cmd_parts[0] == exe:
                 cmd_parts = cmd_parts[1:]
             if cmd_parts:
-                full_cmd = "%s %s" % (exe, " ".join(cmd_parts))
+                full_cmd = [exe] + cmd_parts
             else:
-                full_cmd = exe
+                full_cmd = [exe]
         else:
-            full_cmd = exe
+            full_cmd = [exe]
+
+        key = " ".join(full_cmd)
+        if key in seen_cmds:
+            log_debug("skip duplicate: %s" % key)
+            continue
+        seen_cmds.add(key)
 
         try:
-            os.system("nohup %s > /dev/null 2>&1 &" % full_cmd)
+            subprocess.Popen(
+                full_cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL,
+                start_new_session=True,
+                close_fds=True
+            )
+            log_debug("started: %s" % key)
             restarted = True
-        except:
-            pass
+        except Exception as e:
+            log_debug("Popen err for %s: %s" % (key, str(e)))
 
     if restarted:
-        time.sleep(3)
+        time.sleep(2)
 
     return restarted
 
@@ -462,7 +640,14 @@ def _service_has_biss(session):
 
 
 # ============================================================
-# Success screen
+# Global timers (v59: prevent GC)
+# ============================================================
+_success_close_timer = None
+_restart_timer = None
+
+
+# ============================================================
+# Success screen - v59 FINAL
 # ============================================================
 class PomBissSuccessScreen(Screen):
     skin = '''
@@ -526,16 +711,46 @@ class PomBissSuccessScreen(Screen):
                 pass
 
     def _do_close(self):
+        """
+        v59 FINAL:
+        - callback in GLOBAL timer (prevents GC)
+        - then close screen
+        """
+        global _success_close_timer
+
+        log_debug("SuccessScreen._do_close called")
+
+        if self.on_close_cb:
+            cb = self.on_close_cb
+
+            def run_cb():
+                log_debug("run_cb: executing on_close callback")
+                try:
+                    cb()
+                    log_debug("run_cb: callback finished OK")
+                except Exception as e:
+                    log_debug("run_cb error: %s" % str(e))
+                    import traceback
+                    log_debug(traceback.format_exc())
+
+            _success_close_timer = eTimer()
+            try:
+                _success_close_timer.timeout.connect(run_cb)
+            except:
+                _success_close_timer.callback.append(run_cb)
+            _success_close_timer.start(500, True)
+            log_debug("run_cb: timer started (500ms)")
+        else:
+            log_debug("_do_close: no callback!")
+
         try:
-            if self.on_close_cb:
-                self.on_close_cb()
+            self.close()
         except Exception as e:
-            log_debug("on_close callback error: %s" % str(e))
-        self.close()
+            log_debug("self.close err: %s" % str(e))
 
 
 # ============================================================
-# KeyPusher v54
+# KeyPusher v59
 # ============================================================
 _pusher = None
 
@@ -626,7 +841,6 @@ class _KeyPusher(object):
         if self.tries % 5 == 0:
             log_debug("KeyPusher waiting... tries=%d" % self.tries)
 
-        # از بار دوم چک کن روی همون ترانسپوندر باشه
         if self.tries > 1:
             if not self._is_on_expected_transponder():
                 log_debug("ABORT: wrong transponder")
@@ -646,17 +860,14 @@ class _KeyPusher(object):
     def _auto_save_and_restart(self):
         session = self.session
 
-        # چک 1: transponder
         if not self._is_on_expected_transponder():
             log_debug("ABORT save: wrong transponder")
             return
 
-        # چک 2: CAID BISS
         if not _service_has_biss(session):
             log_debug("ABORT save: no BISS CAID")
             return
 
-        # چک 3: duplicate
         if self._is_cw_already_saved():
             log_debug("SKIP: CW already in SoftCam.Key")
             return
@@ -682,21 +893,48 @@ class _KeyPusher(object):
         orb = info.get("orb", "?")
         freq_info = _format_freq_from_feed(self.feed)
 
+        # ⭐ v59: restart_after_close with M3U save
         def restart_after_close():
+            global _restart_timer
+            log_debug("=== restart_after_close: START ===")
+
+            # Stage 1: restart emulator
             try:
-                try:
-                    if hasattr(session, 'nav') and session.nav:
-                        ref = session.nav.getCurrentlyPlayingServiceReference()
-                        if ref:
-                            session.nav.playService(ref)
-                            log_debug("service re-tuned")
-                except Exception as e:
-                    log_debug("retune service error: %s" % str(e))
-                time.sleep(1)
-                restart_emulator()
-                log_debug("emulator restarted")
+                result = restart_emulator()
+                log_debug("restart_emulator() returned: %s" % result)
             except Exception as e:
                 log_debug("restart_emulator error: %s" % str(e))
+                import traceback
+                log_debug(traceback.format_exc())
+
+            # Stage 2: wait for emulator to boot
+            time.sleep(3)
+
+            # Stage 3: re-tune service
+            try:
+                if hasattr(session, 'nav') and session.nav:
+                    ref = session.nav.getCurrentlyPlayingServiceReference()
+                    if ref:
+                        log_debug("re-tuning service...")
+                        session.nav.playService(ref)
+                        log_debug("service re-tuned OK")
+
+                        # ⭐ Stage 4: ذخیره Service Reference برای M3U
+                        try:
+                            service_ref_str = ref.toString()
+                            log_debug("service_ref_str = %s" % service_ref_str)
+                            save_service_reference(session, self.feed, service_ref_str)
+                            log_debug("M3U service reference saved")
+                        except Exception as e:
+                            log_debug("save_service_reference error: %s" % str(e))
+                    else:
+                        log_debug("no ref to retune")
+                else:
+                    log_debug("no session.nav")
+            except Exception as e:
+                log_debug("retune error: %s" % str(e))
+
+            log_debug("=== restart_after_close: DONE ===")
 
         try:
             session.open(PomBissSuccessScreen,
@@ -724,7 +962,7 @@ def push_key_to_keyadder(session, cw, feed=None):
 
 
 # ============================================================
-# Satfinder with params - v54
+# Satfinder with params - v59
 # ============================================================
 def _open_satfinder_with_params(session, feed, feid):
     from Plugins.SystemPlugins.Satfinder.plugin import Satfinder
@@ -746,6 +984,30 @@ def _open_satfinder_with_params(session, feed, feid):
 
     sat_idx = _find_sat_index(feid, satpos, sat_name)
     log_debug("sat_idx = %s" % str(sat_idx))
+
+    # ⭐ fallback
+    if sat_idx is None:
+        try:
+            sat_list = nimmanager.getSatListForNim(feid)
+            if sat_list:
+                target_norm = _normalize_name(sat_name)
+                for idx, sat in enumerate(sat_list):
+                    name = _normalize_name(sat[1] if len(sat) > 1 else "")
+                    for word in target_norm.split():
+                        if len(word) >= 3 and word in name:
+                            sat_idx = idx
+                            log_debug("FALLBACK sat_idx=%d by name '%s'" % (idx, word))
+                            break
+                    if sat_idx is not None:
+                        break
+        except Exception as e:
+            log_debug("fallback err: %s" % str(e))
+
+    if sat_idx is None:
+        log_debug("WARNING: sat_idx still None! Trying index 0")
+        sat_idx = 0
+
+    log_debug("Final sat_idx = %s" % str(sat_idx))
 
     class PomBissSatfinder(Satfinder):
         def __init__(self, session):
@@ -797,7 +1059,7 @@ def _open_satfinder_with_params(session, feed, feid):
                     except Exception as e:
                         log_debug("scan_nims err: %s" % str(e))
 
-                if self.pombiss_sat_idx is not None and hasattr(self, 'scan_satselection'):
+                if hasattr(self, 'scan_satselection'):
                     try:
                         if len(self.scan_satselection) > feid:
                             self.scan_satselection[feid].value = self.pombiss_sat_idx
@@ -891,12 +1153,19 @@ def _open_satfinder_with_params(session, feed, feid):
 
 
 # ============================================================
-# Entry point - v54
+# Entry point - v59.1 FINAL
 # ============================================================
 def open_signal_finder(session, feed):
+    saved_ref = None
+    try:
+        saved_ref = session.nav.getCurrentlyPlayingServiceReference()
+        log_debug("saved current ref for restore")
+    except:
+        pass
+
     try:
         log_debug("=" * 50)
-        log_debug("=== START (OBH v54) ===")
+        log_debug("=== START (OBH v59.1 FINAL) ===")
         log_debug("feed: " + str(feed))
 
         feid = _get_tuner()
@@ -915,6 +1184,8 @@ def open_signal_finder(session, feed):
             CustomSatfinder = None
         except Exception as e:
             log_debug("Satfinder setup error: %s" % str(e))
+            import traceback
+            log_debug(traceback.format_exc())
             CustomSatfinder = None
 
         if CustomSatfinder is None:
@@ -933,7 +1204,6 @@ def open_signal_finder(session, feed):
                         freq_khz = int(self.pombiss_feed['freq'])
                         sr_ksym = int(self.pombiss_feed['sr'])
                         pol_int = _pol_to_int(self.pombiss_feed['pol'])
-                        satpos = _position_to_int(self.pombiss_feed['position'])
 
                         if hasattr(self, 'scan_sat'):
                             ss = self.scan_sat
@@ -976,5 +1246,11 @@ def open_signal_finder(session, feed):
         import traceback
         log_debug("ERROR: " + str(e))
         log_debug(traceback.format_exc())
+        try:
+            if saved_ref:
+                session.nav.playService(saved_ref)
+                log_debug("restored previous service after error")
+        except:
+            pass
         session.open(MessageBox, "Error: " + str(e),
                      MessageBox.TYPE_ERROR, timeout=8)

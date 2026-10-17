@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Signalfinder for PomBiss - OpenATV - v58 FINAL
+Signalfinder for PomBiss - OpenATV - v59.1 FINAL
 - FIX: restart_emulator with subprocess.Popen (no os.system crash)
 - FIX: SIGTERM then SIGKILL (no duplicate OSCam)
 - FIX: deduplication of emu processes
@@ -8,6 +8,9 @@ Signalfinder for PomBiss - OpenATV - v58 FINAL
 - FIX: restart_after_close ALWAYS runs with retune
 - FIX: check None in _get_hash / _get_orb / info / ref
 - FIX: OOM prevention
+- NEW: save_service_reference for M3U export
+- v59.1: display_name field for cleaner M3U channel names
+- v59.1: better feed_key sanitization
 """
 
 import sys
@@ -18,6 +21,7 @@ import glob
 import signal
 import binascii
 import subprocess
+import json
 from array import array
 from datetime import datetime
 from enigma import (
@@ -87,9 +91,6 @@ def _pol_to_int(pol_str):
 
 
 def _position_to_int(position_str):
-    """
-    v58 FIX: 160 -> 160 (not 1600)
-    """
     try:
         s = str(position_str).strip()
         if not s:
@@ -208,7 +209,6 @@ def _crc32(data):
     return value ^ 0xffffffff
 
 
-# ⭐ v58: چک None
 def _get_hash(session):
     try:
         ref = session.nav.getCurrentlyPlayingServiceReference()
@@ -229,7 +229,6 @@ def _get_hash(session):
         return None
 
 
-# ⭐ v58: چک None
 def _get_orb(session):
     try:
         ref = session.nav.getCurrentlyPlayingServiceReference()
@@ -254,7 +253,6 @@ def _clean_cw(cw):
     return ""
 
 
-# ⭐ v58: چک None برای info و ref
 def _save_biss_key_directly(session, softcam_path, cw):
     from ServiceReference import ServiceReference
     try:
@@ -290,7 +288,80 @@ def _save_biss_key_directly(session, softcam_path, cw):
 
 
 # ============================================================
-# v58 FINAL: Restart emulator - subprocess.Popen, no crash
+# ⭐ v59.1: Save Service Reference for M3U (Same as OBH)
+# ============================================================
+def save_service_reference(session, feed, service_ref):
+    SERVICES_PATH = "/media/hdd/PomBiss_services.json"
+    SERVICES_DIR = "/media/hdd"
+    
+    try:
+        log_debug("=== save_service_reference START ===")
+        log_debug("service_ref: %s" % service_ref)
+        log_debug("feed_id: %s" % feed.get("feed_id", ""))
+        log_debug("feed name: %s" % feed.get("name", ""))
+        
+        if not os.path.exists(SERVICES_DIR):
+            try:
+                os.makedirs(SERVICES_DIR)
+            except Exception as e:
+                log_debug("mkdir error: %s" % str(e))
+                return False
+        
+        services = {}
+        if os.path.exists(SERVICES_PATH):
+            try:
+                with open(SERVICES_PATH, "r") as f:
+                    services = json.load(f)
+            except Exception as e:
+                log_debug("JSON read error: %s" % str(e))
+                services = {}
+        
+        feed_key = feed.get("feed_id", "").strip()
+        if not feed_key:
+            feed_key = feed.get("name", "").strip()
+        if not feed_key:
+            feed_key = "feed_%s" % datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        feed_key = feed_key.replace(" ", "_").replace("/", "_")
+        feed_key = re.sub(r'[^\w\-]', '_', feed_key)
+        feed_key = feed_key[:80]
+        
+        display_name = feed.get("feed_id", "").strip()
+        if not display_name:
+            display_name = feed.get("name", "").strip()
+        
+        if len(display_name) > 100:
+            display_name = display_name[:97] + "..."
+        
+        services[feed_key] = {
+            "service_ref": str(service_ref),
+            "name": feed.get("name", "Unknown Feed"),
+            "display_name": display_name,
+            "sat": feed.get("sat", ""),
+            "position": feed.get("position", ""),
+            "freq": feed.get("freq", ""),
+            "pol": feed.get("pol", ""),
+            "sr": feed.get("sr", ""),
+            "cw": feed.get("cw", ""),
+            "feed_id": feed.get("feed_id", ""),
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        
+        with open(SERVICES_PATH, "w") as f:
+            json.dump(services, f, indent=2, ensure_ascii=False)
+        
+        log_debug("Service saved: %s (total=%d)" % (feed_key, len(services)))
+        return True
+        
+    except Exception as e:
+        log_debug("save_service_reference error: %s" % str(e))
+        import traceback
+        log_debug(traceback.format_exc())
+        return False
+
+
+# ============================================================
+# Restart emulator
 # ============================================================
 def restart_emulator():
     emu_keywords = ["oscam", "ncam", "cccam", "mgcamd", "gbox",
@@ -343,7 +414,6 @@ def restart_emulator():
 
     log_debug("restart_emulator: found %d emu pids" % len(found_pids))
 
-    # ⭐ SIGTERM first
     for info in found_pids:
         try:
             os.kill(info["pid"], signal.SIGTERM)
@@ -352,7 +422,6 @@ def restart_emulator():
 
     time.sleep(2)
 
-    # ⭐ SIGKILL for leftovers
     for info in found_pids:
         try:
             os.kill(info["pid"], signal.SIGKILL)
@@ -361,7 +430,6 @@ def restart_emulator():
 
     time.sleep(1)
 
-    # ⭐ Deduplicate + Popen
     restarted = False
     seen_cmds = set()
     for info in found_pids:
@@ -427,14 +495,14 @@ def _service_has_biss(session):
 
 
 # ============================================================
-# Global timers (v58: prevent GC)
+# Global timers
 # ============================================================
 _success_close_timer = None
 _restart_timer = None
 
 
 # ============================================================
-# Success screen - v58 FINAL
+# Success screen
 # ============================================================
 class PomBissSuccessScreen(Screen):
     skin = '''
@@ -495,9 +563,6 @@ class PomBissSuccessScreen(Screen):
             except: pass
 
     def _do_close(self):
-        """
-        v58 FINAL: callback in GLOBAL timer
-        """
         global _success_close_timer
 
         log_debug("SuccessScreen._do_close called")
@@ -532,7 +597,7 @@ class PomBissSuccessScreen(Screen):
 
 
 # ============================================================
-# KeyPusher v58
+# KeyPusher
 # ============================================================
 _pusher = None
 
@@ -689,12 +754,10 @@ class _KeyPusher(object):
         except:
             pass
 
-        # ⭐ v58 FINAL: restart_after_close - ALWAYS runs
         def restart_after_close():
             global _restart_timer
             log_debug("=== restart_after_close: START ===")
 
-            # Stage 1: restart emulator
             try:
                 result = restart_emulator()
                 log_debug("restart_emulator() returned: %s" % result)
@@ -703,10 +766,8 @@ class _KeyPusher(object):
                 import traceback
                 log_debug(traceback.format_exc())
 
-            # Stage 2: wait for emulator
             time.sleep(3)
 
-            # Stage 3: re-tune service
             try:
                 if hasattr(session, 'nav') and session.nav:
                     ref = session.nav.getCurrentlyPlayingServiceReference()
@@ -714,8 +775,19 @@ class _KeyPusher(object):
                         log_debug("re-tuning service...")
                         session.nav.playService(ref)
                         log_debug("service re-tuned OK")
+
+                        # ⭐ Stage 4: ذخیره Service Reference برای M3U
+                        try:
+                            service_ref_str = ref.toString()
+                            log_debug("service_ref_str = %s" % service_ref_str)
+                            save_service_reference(session, self.feed, service_ref_str)
+                            log_debug("M3U service reference saved")
+                        except Exception as e:
+                            log_debug("save_service_reference error: %s" % str(e))
                     else:
                         log_debug("no ref to retune")
+                else:
+                    log_debug("no session.nav")
             except Exception as e:
                 log_debug("retune error: %s" % str(e))
 
@@ -743,12 +815,12 @@ def push_key_to_keyadder(session, cw, feed=None):
 
 
 # ============================================================
-# Entry point - v58 FINAL
+# Entry point
 # ============================================================
 def open_signal_finder(session, feed):
     try:
         log_debug("=" * 50)
-        log_debug("=== START (ATV v58 FINAL) ===")
+        log_debug("=== START (ATV v59.1 FINAL) ===")
         log_debug("feed: " + str(feed))
 
         satpos = _position_to_int(feed.get('position', '0'))
@@ -912,7 +984,7 @@ def open_signal_finder(session, feed):
                     log_debug(traceback.format_exc())
 
             def keyGo(self):
-                log_debug("=== keyGo OVERRIDE (ATV v58) ===")
+                log_debug("=== keyGo OVERRIDE (ATV v59.1) ===")
                 if not self._pombiss_ready:
                     log_debug("not ready yet")
                     return

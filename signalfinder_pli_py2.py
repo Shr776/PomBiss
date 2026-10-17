@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Signalfinder for PomBiss - OpenPLi (Python 2 & 3) - v58 FINAL
+Signalfinder for PomBiss - OpenPLi (Python 2 & 3) - v59.1 FINAL
 - FIX: restart_emulator with subprocess.Popen (no os.system crash)
 - FIX: SIGTERM then SIGKILL (no duplicate OSCam)
 - FIX: deduplication of emu processes
@@ -12,6 +12,9 @@ Signalfinder for PomBiss - OpenPLi (Python 2 & 3) - v58 FINAL
 - FIX: skip duplicate CW (silent)
 - FIX: check transponder before saving
 - FIX: position_to_int (160 -> 160)
+- NEW: save_service_reference for M3U export
+- v59.1: display_name field for cleaner M3U channel names
+- v59.1: better feed_key sanitization
 """
 
 import sys
@@ -22,6 +25,7 @@ import glob
 import signal
 import binascii
 import subprocess
+import json
 from array import array
 from datetime import datetime
 from enigma import (
@@ -91,9 +95,6 @@ def _pol_to_int(pol_str):
 
 
 def _position_to_int(position_str):
-    """
-    v58 FIX: 160 -> 160 (not 1600)
-    """
     try:
         s = str(position_str).strip()
         if not s:
@@ -212,7 +213,6 @@ def _crc32(data):
     return value ^ 0xffffffff
 
 
-# ⭐ v58: چک None
 def _get_hash(session):
     try:
         ref = session.nav.getCurrentlyPlayingServiceReference()
@@ -233,7 +233,6 @@ def _get_hash(session):
         return None
 
 
-# ⭐ v58: چک None
 def _get_orb(session):
     try:
         ref = session.nav.getCurrentlyPlayingServiceReference()
@@ -258,7 +257,6 @@ def _clean_cw(cw):
     return ""
 
 
-# ⭐ v58: چک None برای info و ref
 def _save_biss_key_directly(session, softcam_path, cw):
     from ServiceReference import ServiceReference
     try:
@@ -294,7 +292,80 @@ def _save_biss_key_directly(session, softcam_path, cw):
 
 
 # ============================================================
-# v58 FINAL: Restart emulator - subprocess.Popen, no crash
+# ⭐ v59.1: Save Service Reference for M3U
+# ============================================================
+def save_service_reference(session, feed, service_ref):
+    SERVICES_PATH = "/media/hdd/PomBiss_services.json"
+    SERVICES_DIR = "/media/hdd"
+    
+    try:
+        log_debug("=== save_service_reference START ===")
+        log_debug("service_ref: %s" % service_ref)
+        log_debug("feed_id: %s" % feed.get("feed_id", ""))
+        log_debug("feed name: %s" % feed.get("name", ""))
+        
+        if not os.path.exists(SERVICES_DIR):
+            try:
+                os.makedirs(SERVICES_DIR)
+            except Exception as e:
+                log_debug("mkdir error: %s" % str(e))
+                return False
+        
+        services = {}
+        if os.path.exists(SERVICES_PATH):
+            try:
+                with open(SERVICES_PATH, "r") as f:
+                    services = json.load(f)
+            except Exception as e:
+                log_debug("JSON read error: %s" % str(e))
+                services = {}
+        
+        feed_key = feed.get("feed_id", "").strip()
+        if not feed_key:
+            feed_key = feed.get("name", "").strip()
+        if not feed_key:
+            feed_key = "feed_%s" % datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        feed_key = feed_key.replace(" ", "_").replace("/", "_")
+        feed_key = re.sub(r'[^\w\-]', '_', feed_key)
+        feed_key = feed_key[:80]
+        
+        display_name = feed.get("feed_id", "").strip()
+        if not display_name:
+            display_name = feed.get("name", "").strip()
+        
+        if len(display_name) > 100:
+            display_name = display_name[:97] + "..."
+        
+        services[feed_key] = {
+            "service_ref": str(service_ref),
+            "name": feed.get("name", "Unknown Feed"),
+            "display_name": display_name,
+            "sat": feed.get("sat", ""),
+            "position": feed.get("position", ""),
+            "freq": feed.get("freq", ""),
+            "pol": feed.get("pol", ""),
+            "sr": feed.get("sr", ""),
+            "cw": feed.get("cw", ""),
+            "feed_id": feed.get("feed_id", ""),
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        
+        with open(SERVICES_PATH, "w") as f:
+            json.dump(services, f, indent=2, ensure_ascii=False)
+        
+        log_debug("Service saved: %s (total=%d)" % (feed_key, len(services)))
+        return True
+        
+    except Exception as e:
+        log_debug("save_service_reference error: %s" % str(e))
+        import traceback
+        log_debug(traceback.format_exc())
+        return False
+
+
+# ============================================================
+# Restart emulator
 # ============================================================
 def restart_emulator():
     emu_keywords = ["oscam", "ncam", "cccam", "mgcamd", "gbox",
@@ -347,7 +418,6 @@ def restart_emulator():
 
     log_debug("restart_emulator: found %d emu pids" % len(found_pids))
 
-    # ⭐ SIGTERM first
     for info in found_pids:
         try:
             os.kill(info["pid"], signal.SIGTERM)
@@ -356,7 +426,6 @@ def restart_emulator():
 
     time.sleep(2)
 
-    # ⭐ SIGKILL for leftovers
     for info in found_pids:
         try:
             os.kill(info["pid"], signal.SIGKILL)
@@ -365,7 +434,6 @@ def restart_emulator():
 
     time.sleep(1)
 
-    # ⭐ Deduplicate + Popen
     restarted = False
     seen_cmds = set()
     for info in found_pids:
@@ -431,14 +499,14 @@ def _service_has_biss(session):
 
 
 # ============================================================
-# Global timers (v58: prevent GC)
+# Global timers
 # ============================================================
 _success_close_timer = None
 _restart_timer = None
 
 
 # ============================================================
-# Success screen - v58 FINAL
+# Success screen
 # ============================================================
 class PomBissSuccessScreen(Screen):
     skin = '''
@@ -499,9 +567,6 @@ class PomBissSuccessScreen(Screen):
             except: pass
 
     def _do_close(self):
-        """
-        v58 FINAL: callback in GLOBAL timer
-        """
         global _success_close_timer
 
         log_debug("SuccessScreen._do_close called")
@@ -510,14 +575,10 @@ class PomBissSuccessScreen(Screen):
             cb = self.on_close_cb
 
             def run_cb():
-                log_debug("run_cb: executing on_close callback")
                 try:
                     cb()
-                    log_debug("run_cb: callback finished OK")
                 except Exception as e:
                     log_debug("run_cb error: %s" % str(e))
-                    import traceback
-                    log_debug(traceback.format_exc())
 
             _success_close_timer = eTimer()
             try:
@@ -525,18 +586,15 @@ class PomBissSuccessScreen(Screen):
             except:
                 _success_close_timer.callback.append(run_cb)
             _success_close_timer.start(500, True)
-            log_debug("run_cb: timer started (500ms)")
-        else:
-            log_debug("_do_close: no callback!")
 
         try:
             self.close()
-        except Exception as e:
-            log_debug("self.close err: %s" % str(e))
+        except:
+            pass
 
 
 # ============================================================
-# KeyPusher v58
+# KeyPusher
 # ============================================================
 _pusher = None
 
@@ -592,13 +650,11 @@ class _KeyPusher(object):
 
             try:
                 if feed_freq and abs(int(current_freq_khz) - int(feed_freq)) > 3:
-                    log_debug("mismatch freq: cur=%d exp=%s" % (current_freq_khz, feed_freq))
                     return False
             except: pass
 
             try:
                 if feed_sr and abs(int(current_sr_ksym) - int(feed_sr)) > 10:
-                    log_debug("mismatch sr: cur=%d exp=%s" % (current_sr_ksym, feed_sr))
                     return False
             except: pass
 
@@ -606,14 +662,11 @@ class _KeyPusher(object):
                 if feed_pos:
                     exp_orb = _position_to_int(feed_pos)
                     if int(current_orb) != exp_orb:
-                        log_debug("mismatch orb: cur=%d exp=%d" % (current_orb, exp_orb))
                         return False
             except: pass
 
-            log_debug("OK: transponder matches")
             return True
-        except Exception as e:
-            log_debug("_is_on_expected_transponder err: %s" % str(e))
+        except:
             return False
 
     def _tick(self):
@@ -655,23 +708,14 @@ class _KeyPusher(object):
 
         softcam = _find_softcam_key()
         if not softcam or not os.path.exists(softcam):
-            session.open(MessageBox,
-                         "Emu misses SoftCam.Key (%s)" % softcam,
-                         MessageBox.TYPE_ERROR, timeout=8)
             return
 
         try:
             ok, keystr = _save_biss_key_directly(session, softcam, self.cw)
             if not ok:
-                session.open(MessageBox, "Failed to write SoftCam.Key",
-                             MessageBox.TYPE_ERROR, timeout=8)
                 return
         except Exception as e:
-            import traceback
             log_debug("save key error: %s" % str(e))
-            log_debug(traceback.format_exc())
-            session.open(MessageBox, "Save error: %s" % str(e),
-                         MessageBox.TYPE_ERROR, timeout=8)
             return
 
         service_name = ""
@@ -693,33 +737,32 @@ class _KeyPusher(object):
         except:
             pass
 
-        # ⭐ v58 FINAL: restart_after_close - ALWAYS runs
         def restart_after_close():
             global _restart_timer
             log_debug("=== restart_after_close: START ===")
 
-            # Stage 1: restart emulator
             try:
                 result = restart_emulator()
                 log_debug("restart_emulator() returned: %s" % result)
             except Exception as e:
                 log_debug("restart_emulator error: %s" % str(e))
-                import traceback
-                log_debug(traceback.format_exc())
 
-            # Stage 2: wait for emulator
             time.sleep(3)
 
-            # Stage 3: re-tune service
             try:
                 if hasattr(session, 'nav') and session.nav:
                     ref = session.nav.getCurrentlyPlayingServiceReference()
                     if ref:
-                        log_debug("re-tuning service...")
                         session.nav.playService(ref)
                         log_debug("service re-tuned OK")
-                    else:
-                        log_debug("no ref to retune")
+
+                        # ⭐ ذخیره Service Reference برای M3U
+                        try:
+                            service_ref_str = ref.toString()
+                            save_service_reference(session, self.feed, service_ref_str)
+                            log_debug("M3U service reference saved")
+                        except Exception as e:
+                            log_debug("save_service_reference error: %s" % str(e))
             except Exception as e:
                 log_debug("retune error: %s" % str(e))
 
@@ -753,13 +796,13 @@ _pombiss_scan_success = {'success': False}
 
 
 # ============================================================
-# Entry point - v58 FINAL
+# Entry point
 # ============================================================
 def open_signal_finder(session, feed):
     global _pombiss_scan_success
     try:
         log_debug("=" * 50)
-        log_debug("=== START (PLi v58 FINAL) ===")
+        log_debug("=== START (PLi v59.1 FINAL) ===")
         log_debug("feed: " + str(feed))
 
         _pombiss_scan_success['success'] = False
@@ -803,9 +846,6 @@ def open_signal_finder(session, feed):
         PLS_DEFAULT_GOLD = getattr(SP, 'PLS_Default_Gold_Code', 0)
         PLS_GOLD = getattr(SP, 'PLS_Gold', 0)
 
-        log_debug("constants: NO_STREAM=0x%X NO_T2MI=0x%X T2MI_PID=0x%X" % (
-            NO_STREAM, NO_T2MI, T2MI_DEFAULT_PID))
-
         class PomBissSignalFinder(SignalFinder):
             def __init__(self, session):
                 SignalFinder.__init__(self, session)
@@ -830,7 +870,6 @@ def open_signal_finder(session, feed):
 
                 self._pombiss_ready = True
                 self._pombiss_timer.stop()
-                log_debug("PomBiss applying (frontend ready)")
 
                 try:
                     if hasattr(self, 'scan_nims') and self.scan_nims:
@@ -859,9 +898,7 @@ def open_signal_finder(session, feed):
                         try:
                             if hasattr(ss, 'system'):
                                 ss.system.value = SP.System_DVB_S2
-                                log_debug("system = System_DVB_S2")
                         except: pass
-
                         try:
                             if hasattr(ss, 'modulation'):
                                 ss.modulation.value = SP.Modulation_8PSK
@@ -889,13 +926,11 @@ def open_signal_finder(session, feed):
                             if hasattr(ss, 'inversion'):
                                 ss.inversion.value = SP.Inversion_Unknown
                         except: pass
-
                         try:
                             if hasattr(ss, 'is_id_bool'):
                                 ss.is_id_bool.value = False
                             if hasattr(ss, 'is_id'):
                                 ss.is_id.value = NO_STREAM
-                                log_debug("scan_sat.is_id = 0x%X" % NO_STREAM)
                         except: pass
                         try:
                             if hasattr(ss, 'pls_mode'):
@@ -913,22 +948,14 @@ def open_signal_finder(session, feed):
                         except: pass
 
                     try: self.createSetup()
-                    except Exception as e:
-                        log_debug("createSetup err: %s" % str(e))
+                    except: pass
                     try: self.retune()
-                    except Exception as e:
-                        log_debug("retune err: %s" % str(e))
-
-                    log_debug("PomBiss apply DONE")
+                    except: pass
                 except Exception as e:
-                    import traceback
                     log_debug("_pombiss_apply err: %s" % str(e))
-                    log_debug(traceback.format_exc())
 
             def keyGo(self):
-                log_debug("=== keyGo OVERRIDE (PLi v58) ===")
                 if not self._pombiss_ready:
-                    log_debug("not ready yet")
                     return
 
                 try:
@@ -970,18 +997,9 @@ def open_signal_finder(session, feed):
                             parm.orbital_position = sat_list[FEED_SAT_IDX][0]
                     except: pass
 
-                    try:
-                        log_debug("transponder: freq=%d sr=%d pol=%d sys=%d mod=%d fec=%d is_id=0x%X" % (
-                            parm.frequency, parm.symbol_rate, parm.polarisation,
-                            parm.system, parm.modulation, parm.fec,
-                            getattr(parm, 'is_id', 0)))
-                    except: pass
-
                     tlist = [parm]
                 except Exception as e:
-                    import traceback
                     log_debug("transponder build err: %s" % str(e))
-                    log_debug(traceback.format_exc())
                     return
 
                 flags = 0
@@ -1014,9 +1032,7 @@ def open_signal_finder(session, feed):
 
                 if answer is True:
                     _pombiss_scan_success['success'] = True
-                    log_debug("Scan SUCCESS — KeyPusher will start on close")
-                else:
-                    log_debug("Scan FAILED — KeyPusher will NOT start")
+                    log_debug("Scan SUCCESS")
 
                 try:
                     if answer is not True:
@@ -1028,8 +1044,7 @@ def open_signal_finder(session, feed):
                             timeout=10)
                     elif answer is True:
                         self.restartPrevService(True)
-                except Exception as e:
-                    log_debug("serviceScanFinished err: %s" % str(e))
+                except: pass
 
         def on_closed(answer=None):
             global _pombiss_scan_success
@@ -1040,15 +1055,10 @@ def open_signal_finder(session, feed):
                 if cw:
                     push_key_to_keyadder(session, cw, feed)
                     log_debug("KeyPusher started from on_closed")
-                else:
-                    log_debug("No CW in feed")
-            else:
-                log_debug("KeyPusher NOT started (scan was not successful)")
 
             _pombiss_scan_success['success'] = False
 
         session.openWithCallback(on_closed, PomBissSignalFinder)
-        log_debug("screen opened")
 
     except Exception as e:
         import traceback
