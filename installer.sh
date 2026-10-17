@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # ============================================================
-#   PomBiss Plugin Installer v2.3
+#   PomBiss Plugin Installer v2.4
 # ============================================================
 #
 #   🎯 Sports Feed Viewer for Enigma2
@@ -70,6 +70,7 @@ fi
 rm -rf "$TEMP_DIR"
 mkdir -p "$TEMP_DIR"
 mkdir -p "$TEMP_DIR/files"
+mkdir -p "$TEMP_DIR/files/picon"
 
 # --- تابع دانلود ---
 download_file() {
@@ -84,7 +85,7 @@ download_file() {
     return 0
 }
 
-# --- لیست فایل‌ها ---
+# --- لیست فایل‌های اصلی ---
 FILES="
 __init__.py
 plugin.py
@@ -94,11 +95,10 @@ signalfinder_atv.py
 signalfinder_obh.py
 updater.py
 registration.py
-PomBiss_logo.png
 version.txt
 "
 
-# --- دانلود همه فایل‌ها ---
+# --- دانلود فایل‌های اصلی ---
 echo "📥 Downloading plugin files..."
 FAILED=0
 
@@ -107,6 +107,12 @@ for file in $FILES; do
         FAILED=$((FAILED + 1))
     fi
 done
+
+# --- دانلود پوشه picon (لوگو) ---
+echo "📥 Downloading picon files..."
+if ! download_file "$GITHUB_RAW/picon/PomBiss_logo.png" "$TEMP_DIR/files/picon/PomBiss_logo.png"; then
+    FAILED=$((FAILED + 1))
+fi
 
 if [ "$FAILED" -gt 0 ]; then
     echo ""
@@ -123,10 +129,16 @@ if [ ! -d "$PLUGIN_DIR" ]; then
     mkdir -p "$PLUGIN_DIR"
 fi
 
-# کپی فایل‌ها
-for file in $(ls "$TEMP_DIR/files/"); do
+# کپی فایل‌های اصلی
+for file in $(ls "$TEMP_DIR/files/" | grep -v "picon"); do
     cp -f "$TEMP_DIR/files/$file" "$PLUGIN_DIR/$file" 2>/dev/null
 done
+
+# ساخت و کپی پوشه پیکون
+if [ ! -d "$PLUGIN_DIR/picon" ]; then
+    mkdir -p "$PLUGIN_DIR/picon"
+fi
+cp -f "$TEMP_DIR/files/picon/"* "$PLUGIN_DIR/picon/" 2>/dev/null
 
 # --- پاک کردن .pyo و .pyc قدیمی ---
 echo "🗑 Removing old .pyo / .pyc files..."
@@ -136,6 +148,8 @@ rm -f "$PLUGIN_DIR"/*.pyc 2>/dev/null
 # --- permission ---
 chmod 644 "$PLUGIN_DIR"/*.py 2>/dev/null
 chmod 644 "$PLUGIN_DIR"/*.png 2>/dev/null
+chmod 755 "$PLUGIN_DIR/picon" 2>/dev/null
+chmod 644 "$PLUGIN_DIR/picon/"* 2>/dev/null
 
 # --- نمایش نسخه ---
 NEW_VERSION=$(cat "$TEMP_DIR/files/version.txt" 2>/dev/null | head -n 1)
