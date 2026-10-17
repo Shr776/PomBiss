@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-PomBiss Updater Module v2.3
+PomBiss Updater Module v2.4
 - Uses Console screen to show installation progress live
 - Runs installer via wget | sh (like RaedQuickSignal)
 - Creates marker file /tmp/pombiss_from_plugin so installer knows source
 - After installer finishes, restarts Enigma2 via TryQuitMainloop
+- v2.4: Bump version for M3U + Auto-cleanup + Picon support
 """
 
 import os
@@ -21,7 +22,7 @@ from Screens.Standby import TryQuitMainloop
 from enigma import eTimer
 
 
-PLUGIN_VERSION = "2.3"
+PLUGIN_VERSION = "2.4"
 
 VERSION_URL = "https://raw.githubusercontent.com/Shr776/PomBiss/main/version.txt"
 INSTALLER_URL = "https://raw.githubusercontent.com/Shr776/PomBiss/main/installer.sh"
