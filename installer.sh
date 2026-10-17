@@ -159,18 +159,42 @@ echo "  Developer:         @Shr776"
 echo "                     https://t.me/Shr776"
 echo "======================================================"
 echo ""
-echo ">>> Restarting Enigma2 in 5 seconds..."
-sleep 1
-echo "   4..."
-sleep 1
-echo "   3..."
-sleep 1
-echo "   2..."
-sleep 1
-echo "   1..."
-sleep 1
-echo "   [OK] Restarting now!"
+
+# --- Cleanup temp files BEFORE footer ---
+rm -rf "$TEMP_DIR"
+
+# ============================================================
+# BIG ASCII TEXT FOOTER (Slim & Centered)
+# ============================================================
 echo ""
+echo ""
+echo "         _     _                 __              _    _ _ "
+echo "        | |   (_)_ __  _   ___  __/ _| ___  _ __ / \\  | | |"
+echo "        | |   | | '_ \\| | | \\ \\/ / |_ / _ \\| '__/ _ \\ | | |"
+echo "        | |___| | | | | |_| |>  <|  _| (_) | |  / ___ \\| | |"
+echo "        |_____|_|_| |_|\\__,_/_/\\_\\_|  \\___/|_| /_/   \\_\\_|_|"
+echo ""
+echo "                      ====================="
+echo ""
+echo "                    _    ___  _   _ ____   ___  _     ___ "
+echo "                   / \\  / __|| | | / ___| / _ \\| |   / _ \\"
+echo "                  / _ \\ \\__ \\| | | \\___ \\| | | | |  | | | |"
+echo "                 / ___ \\ ___) | |_| |___) | |_| | |__| |_| |"
+echo "                /_/   \\_\\____/ \\___/|____/ \\___/|_____\\___/ "
+echo ""
+echo "                      ====================="
+echo ""
+echo ""
+
+# --- Horizontal Countdown ---
+echo ">>> Restarting Enigma2 in 10 seconds:"
+for i in 10 9 8 7 6 5 4 3 2 1; do
+    echo -n "$i... "
+    sleep 1
+done
+echo ""
+echo ""
+echo "   [OK] Restarting now!"
 
 # --- Restart Flag ---
 if [ -f /tmp/pombiss_from_plugin ]; then
@@ -187,33 +211,5 @@ else
     sleep 2
     init 3 >/dev/null 2>&1
 fi
-
-# --- Cleanup ---
-rm -rf "$TEMP_DIR"
-
-# ============================================================
-# BIG ASCII TEXT FOOTER (Centered)
-# ============================================================
-echo ""
-echo ""
-echo ""
-echo "            _      _                    __                 _ _ "
-echo "           | |    (_)_ __  _   ___  __ / _| ___  _ __     / \\ |"
-echo "           | |    | | '_ \\| | | \\ \\/ /| |_ / _ \\| '__|   / _ \\|"
-echo "           | |___ | | | | | |_| |>  < |  _| (_) | |     / ___ \\|"
-echo "           |_____||_|_| |_|\\__,_/_/\\_\\|_|  \\___/|_|    /_/   \\_\\"
-echo ""
-echo "                           ====================="
-echo ""
-echo "                 __     __ _   _ ____   ___  _     ___  "
-echo "                 \\ \\   / /| | | / ___| / _ \\| |   / _ \\ "
-echo "                  \\ \\ / / | | | \\___ \\| | | | |  | | | |"
-echo "                   \\ V /  | |_| |___) | |_| | |__| |_| |"
-echo "                    \\_/    \\___/|____/ \\___/|_____\\___/ "
-echo ""
-echo "                           ====================="
-echo ""
-echo ""
-echo ""
 
 exit 0
