@@ -22,8 +22,15 @@ from Screens.MessageBox import MessageBox
 from Screens.ChoiceBox import ChoiceBox
 from Screens.InputBox import InputBox
 from Components.Label import Label
+from Components.Pixmap import Pixmap
 from Components.ActionMap import ActionMap
 from enigma import eTimer
+from Tools.Directories import resolveFilename, SCOPE_PLUGINS
+
+try:
+    plugin_dir = resolveFilename(SCOPE_PLUGINS, "Extensions/PomBiss")
+except:
+    plugin_dir = "/usr/lib/enigma2/python/Plugins/Extensions/PomBiss"
 
 
 API_URL = "https://script.google.com/macros/s/AKfycbzG7c8KHNhMA1mvrJWa8TooyXgKY3Ss0ZT5Dizmjibzo3yFI-awBoim-c9QAzx2sIBz/exec"
@@ -523,46 +530,59 @@ class RegistrationScreen(Screen):
 
 
 # ============================================================
-# Pending Screen
+# Pending Screen (⭐ NEW DESIGN WITH LOGO & GLASSMORPHISM)
 # ============================================================
 class PendingScreen(Screen):
 
     skin = '''
-    <screen name="PendingScreen" position="center,center" size="800,450"
+    <screen name="PendingScreen" position="center,center" size="1000,600"
             title="Pending Approval" flags="wfNoBorder" backgroundColor="#0a0a1a">
 
-        <widget name="line_top" position="50,30" size="700,3"
+        <!-- Background Frame (Glassmorphism Effect) -->
+        <widget name="bg_frame" position="20,20" size="960,560"
+                font="Regular;1" transparent="0" backgroundColor="#111827"
+                zPosition="-1" />
+
+        <widget name="border_top" position="50,25" size="900,3"
+                font="Regular;1" transparent="0" backgroundColor="#ffaa00" />
+        <widget name="border_bot" position="50,570" size="900,3"
                 font="Regular;1" transparent="0" backgroundColor="#ffaa00" />
 
-        <widget name="icon" position="0,60" size="800,80"
-                font="Regular;60" transparent="1" foregroundColor="#ffaa00"
+        <!-- ⭐ LOGO -->
+        <ePixmap name="logo" position="400,40" size="200,80"
+                 pixmap="''' + plugin_dir + '''/picon/PomBiss_logo.png" alphatest="on" zPosition="1" />
+
+        <widget name="title" position="0,130" size="1000,60"
+                font="Regular;40" transparent="1" foregroundColor="#ffaa00"
                 halign="center" valign="center" />
 
-        <widget name="title" position="0,150" size="800,60"
-                font="Regular;36" transparent="1" foregroundColor="#ffaa00"
+        <widget name="msg1" position="0,210" size="1000,40"
+                font="Regular;26" transparent="1" foregroundColor="#ffffff"
                 halign="center" valign="center" />
 
-        <widget name="msg1" position="0,220" size="800,40"
-                font="Regular;22" transparent="1" foregroundColor="#ffffff"
+        <widget name="msg2" position="0,260" size="1000,40"
+                font="Regular;24" transparent="1" foregroundColor="#ffffff"
                 halign="center" valign="center" />
 
-        <widget name="msg2" position="0,265" size="800,40"
-                font="Regular;22" transparent="1" foregroundColor="#ffffff"
+        <!-- Contact Info -->
+        <widget name="contact_title" position="0,330" size="1000,35"
+                font="Regular;22" transparent="1" foregroundColor="#00ffff"
+                halign="center" valign="center" />
+        
+        <widget name="contact_id" position="0,380" size="1000,45"
+                font="Regular;34" transparent="1" foregroundColor="#00ff88"
+                halign="center" valign="center" />
+                
+        <widget name="contact_channel" position="0,435" size="1000,40"
+                font="Regular;26" transparent="1" foregroundColor="#00aaff"
                 halign="center" valign="center" />
 
-        <widget name="mac_label" position="0,320" size="800,35"
-                font="Regular;18" transparent="1" foregroundColor="#00ffff"
+        <widget name="mac_label" position="0,510" size="1000,30"
+                font="Regular;18" transparent="1" foregroundColor="#94a3b8"
                 halign="center" valign="center" />
 
-        <widget name="status_line" position="0,360" size="800,30"
-                font="Regular;16" transparent="1" foregroundColor="#8888aa"
-                halign="center" valign="center" />
-
-        <widget name="line_bot" position="50,400" size="700,3"
-                font="Regular;1" transparent="0" backgroundColor="#ffaa00" />
-
-        <widget name="help" position="0,415" size="800,25"
-                font="Regular;14" transparent="1" foregroundColor="#666666"
+        <widget name="help" position="0,560" size="1000,25"
+                font="Regular;16" transparent="1" foregroundColor="#666666"
                 halign="center" valign="center" />
     </screen>'''
 
@@ -573,14 +593,20 @@ class PendingScreen(Screen):
         self._check_timer = None
         self._open_timer = None
 
-        self["line_top"] = Label("")
-        self["icon"] = Label("\u23F3")
-        self["title"] = Label("Waiting for Approval")
+        self["bg_frame"] = Label("")
+        self["border_top"] = Label("")
+        self["border_bot"] = Label("")
+        self["logo"] = Pixmap()
+        self["title"] = Label("Pending Approval")
         self["msg1"] = Label("Your registration is pending.")
-        self["msg2"] = Label("Admin will verify your account soon.")
+        self["msg2"] = Label("Please contact admin to activate your MAC:")
+        
+        # ⭐ Telegram Contact Info
+        self["contact_title"] = Label("Telegram Support:")
+        self["contact_id"] = Label("👤 ID: @Shr776")
+        self["contact_channel"] = Label("📢 Channel: https://t.me/VuSolo")
+
         self["mac_label"] = Label("MAC: %s" % mac)
-        self["status_line"] = Label("Checking every 10 seconds...")
-        self["line_bot"] = Label("")
         self["help"] = Label("GREEN: Check Now  |  RED: Close")
 
         self["actions"] = ActionMap(
@@ -608,7 +634,6 @@ class PendingScreen(Screen):
     def check_now(self):
         result = api_check_status(self.mac)
         if result is None:
-            self["status_line"].setText("Network error - retrying...")
             return
 
         status = result.get("status", "")
@@ -656,13 +681,9 @@ class PendingScreen(Screen):
                 self.close()
                 self.session.open(BlockedScreen, self.mac)
             elif user_status == "pending":
-                self["status_line"].setText("Still pending - checking again...")
+                pass # Keep screen as is
             else:
-                self["status_line"].setText("Unknown status: %s" % user_status)
-        elif status == "not_found":
-            self["status_line"].setText("Not found - retrying...")
-        else:
-            self["status_line"].setText("Response: %s" % str(result)[:50])
+                pass
 
 
 # ============================================================

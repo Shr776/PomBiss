@@ -1,20 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
-PomBiss Plugin for Enigma2 v5.6
-Sports Feed Viewer - Neon Dual Panel Theme
-+ LIVE PIP PREVIEW (800 x 450)
-+ M3U Export Manager with timestamped files
-+ MENU -> ChoiceBox (Contact + M3U)
-+ M3U with group-title for AJ Panel / IPTV Players
-+ Compact color buttons (fit inside left panel)
-+ Stronger glow effect for preview borders
-+ CLEAN VERSION - No emoji (Enigma2 doesn't support them)
-+ v5.6:
-  - URL-encode ServiceReference for M3U (AJ Panel compatible)
-  - Use display_name / feed_id as channel name
-  - DELETE ALL now removes PomBiss_services.json too
-  - AUTO-CLEANUP: removes JSON + M3U if older than AUTO_CLEAN_HOURS
+PomBiss Plugin for Enigma2 v9.9
+Sports Feed Viewer - Final Step-by-Step Fixes
 """
 
 from __future__ import print_function
@@ -32,7 +20,7 @@ from Screens.ChoiceBox import ChoiceBox
 from Components.Label import Label
 from Components.Pixmap import Pixmap
 from Components.ActionMap import ActionMap
-from enigma import getDesktop, eTimer
+from enigma import getDesktop, eTimer, ePoint, gRGB
 from Tools.Directories import resolveFilename, SCOPE_PLUGINS
 
 import requests
@@ -42,6 +30,7 @@ import glob
 import signal
 import subprocess
 import json
+import re
 from datetime import datetime
 
 try:
@@ -52,9 +41,24 @@ except:
 plugin_dir = resolveFilename(SCOPE_PLUGINS, "Extensions/PomBiss")
 FEEDS_URL = "https://raw.githubusercontent.com/Shr776/PomBissFeeds/main/feeds.txt"
 
+# Clock font shipped inside the plugin (falls back to Regular if missing)
+POM_CLOCK_FONT = "Regular"
+try:
+    from enigma import addFont
+    _pom_font_file = os.path.join(plugin_dir, "fonts", "ChakraPetch-Bold.ttf")
+    if os.path.exists(_pom_font_file):
+        try:
+            addFont(_pom_font_file, "PomHead", 100, False)
+        except TypeError:
+            addFont(_pom_font_file, "PomHead", 100, False, 0)
+        POM_CLOCK_FONT = "PomHead"
+except Exception:
+    POM_CLOCK_FONT = "Regular"
+
 from . import signalfinder
 from . import registration
 from . import updater
+from . import webserver
 
 from Components.config import config, ConfigSubsection, ConfigInteger, ConfigSelection
 from Components.NimManager import nimmanager
@@ -62,7 +66,7 @@ from Components.NimManager import nimmanager
 config.plugins.PomBiss = ConfigSubsection()
 config.plugins.PomBiss.feedfreq = ConfigInteger(default=11020, limits=(0, 13000))
 config.plugins.PomBiss.feedsr = ConfigInteger(default=7200, limits=(0, 100000))
-config.plugins.PomBiss.feedpol = ConfigInteger(default=1, limits=(0, 1))
+config.plugins.PomBiss.feedpol = ConfigInteger(default=0, limits=(0, 1))
 config.plugins.PomBiss.feedpos = ConfigInteger(default=130, limits=(0, 3600))
 
 _nimchoices = []
@@ -101,7 +105,6 @@ M3U_PATH = os.path.join(M3U_DIR, "PomBiss_M3U.m3u")
 SERVICES_PATH = os.path.join(M3U_DIR, "PomBiss_services.json")
 LAST_M3U_FILE = "/tmp/.pombiss_last_m3u"
 
-# ⭐ v5.6: Auto-cleanup config
 AUTO_CLEAN_HOURS = 24
 
 
@@ -109,18 +112,10 @@ AUTO_CLEAN_HOURS = 24
 # Auto-cleanup
 # ============================================================
 def check_and_auto_cleanup():
-    """
-    v5.6: چک کن اگه از آخرین تغییر JSON بیشتر از AUTO_CLEAN_HOURS ساعت گذشته،
-    فایل JSON و همه‌ی M3U ها رو پاک کن.
-    
-    Returns:
-        bool: True اگه پاک شد، False اگه نه
-    """
     try:
         if not os.path.exists(SERVICES_PATH):
             return False
         
-        # ⭐ آخرین زمان تغییر JSON
         try:
             json_mtime = os.path.getmtime(SERVICES_PATH)
         except Exception as e:
@@ -137,10 +132,8 @@ def check_and_auto_cleanup():
             log_debug("JSON is fresh - no cleanup needed")
             return False
         
-        # ⭐ بیشتر از AUTO_CLEAN_HOURS گذشته -> پاک کن
         log_debug("!!! JSON is OLDER than %d hours -> AUTO CLEANUP !!!" % AUTO_CLEAN_HOURS)
         
-        # شمارش فیدها قبل از پاک کردن (برای لاگ)
         feeds_count = 0
         try:
             with open(SERVICES_PATH, "r") as f:
@@ -148,7 +141,6 @@ def check_and_auto_cleanup():
         except:
             pass
         
-        # پاک کردن JSON
         try:
             os.remove(SERVICES_PATH)
             log_debug("AUTO-CLEANED: removed %s (%d feeds)" % (SERVICES_PATH, feeds_count))
@@ -156,7 +148,6 @@ def check_and_auto_cleanup():
             log_debug("auto-cleanup remove JSON error: %s" % str(e))
             return False
         
-        # پاک کردن همه M3U های قدیمی
         try:
             all_files = get_all_m3u_files()
             deleted_m3u = 0
@@ -171,14 +162,12 @@ def check_and_auto_cleanup():
         except:
             pass
         
-        # پاک کردن LAST_M3U_FILE
         try:
             if os.path.exists(LAST_M3U_FILE):
                 os.remove(LAST_M3U_FILE)
         except:
             pass
         
-        # پاک کردن M3U_PATH قدیمی
         try:
             if os.path.exists(M3U_PATH):
                 os.remove(M3U_PATH)
@@ -247,7 +236,6 @@ def get_all_m3u_files():
 
 
 def count_services():
-    """Return number of services in JSON file (0 if not exists)"""
     try:
         if os.path.exists(SERVICES_PATH):
             with open(SERVICES_PATH, "r") as f:
@@ -258,7 +246,6 @@ def count_services():
 
 
 def get_json_age_hours():
-    """Return age of JSON file in hours (0 if not exists)"""
     try:
         if os.path.exists(SERVICES_PATH):
             return (time.time() - os.path.getmtime(SERVICES_PATH)) / 3600.0
@@ -462,6 +449,33 @@ POSITION_FIX = {
     "216": "Eutelsat 21C ( 21.6E )",
 }
 
+# �? ???�?�?� ?�?�?�?� ?�?�?�?� ?�?�???�?� ?�?�?�?� ?�?�?� ?�?�?�?�?�?�?�
+def get_short_sat_name(sat_str, pos_str):
+    if not sat_str or sat_str == "0":
+        if pos_str:
+            try:
+                pos = float(pos_str) / 10.0 if float(pos_str) > 360 else float(pos_str)
+                if pos > 180:
+                    pos = 360 - pos
+                    return "%.1fW" % pos
+                else:
+                    return "%.1fE" % pos
+            except:
+                return pos_str
+        return "-"
+    
+    match = re.search(r'([\d\.]+)\s*([EW])', sat_str, re.IGNORECASE)
+    if match:
+        pos = match.group(1)
+        dir = match.group(2).upper()
+        try:
+            val = float(pos)
+            if val <= 180:
+                return "%.1f%s" % (val, dir)
+        except:
+            pass
+            
+    return sat_str
 
 # ============================================================
 # CONTACT US SCREEN
@@ -817,7 +831,6 @@ class PomBissM3UManager(Screen):
         self.session = session
         self.parent = parent
         
-        # ⭐ v5.6: چک auto-cleanup
         try:
             if check_and_auto_cleanup():
                 log_debug("Auto-cleanup done at M3U Manager open")
@@ -876,7 +889,6 @@ class PomBissM3UManager(Screen):
         try:
             self.has_services = os.path.exists(SERVICES_PATH)
             
-            # ⭐ شمارش feeds از JSON
             self.feeds_count = count_services()
             
             all_files = get_all_m3u_files()
@@ -913,7 +925,6 @@ class PomBissM3UManager(Screen):
             self["files_value"].setText(str(self.files_count))
             self["lastfile_value"].setText(self.last_filename)
             
-            # ⭐ v5.6: نمایش سن JSON
             if self.has_services:
                 age_hours = get_json_age_hours()
                 if age_hours < 1:
@@ -997,12 +1008,10 @@ class PomBissM3UManager(Screen):
                         log_debug("SKIP: no service_ref for %s" % key)
                         continue
                     
-                    # ⭐ URL-encode کردن ServiceReference
                     encoded_ref = quote(str(service_ref), safe='')
                     
                     stream_url = "http://%s:8001/%s" % (receiver_ip, encoded_ref)
                     
-                    # ⭐ v5.6: اولویت display_name -> feed_id -> name
                     feed_name = (data.get("display_name", "").strip() or 
                                  data.get("feed_id", "").strip() or 
                                  data.get("name", key))
@@ -1164,7 +1173,6 @@ class PomBissM3UManager(Screen):
             deleted_m3u = 0
             deleted_other = 0
             
-            # ⭐ 1. پاک کردن همه فایل‌های M3U
             all_files = get_all_m3u_files()
             for f in all_files:
                 try:
@@ -1174,7 +1182,6 @@ class PomBissM3UManager(Screen):
                 except:
                     pass
             
-            # ⭐ 2. پاک کردن LAST_M3U_FILE
             try:
                 if os.path.exists(LAST_M3U_FILE):
                     os.remove(LAST_M3U_FILE)
@@ -1182,7 +1189,6 @@ class PomBissM3UManager(Screen):
             except:
                 pass
             
-            # ⭐ 3. پاک کردن M3U_PATH قدیمی
             try:
                 if os.path.exists(M3U_PATH):
                     os.remove(M3U_PATH)
@@ -1190,7 +1196,6 @@ class PomBissM3UManager(Screen):
             except:
                 pass
             
-            # ⭐ 4. پاک کردن فایل JSON (مهم!)
             try:
                 if os.path.exists(SERVICES_PATH):
                     os.remove(SERVICES_PATH)
@@ -1234,305 +1239,285 @@ class PomBissM3UManager(Screen):
 
 
 # ============================================================
-# SCREEN 1 - POMBISS LIST v5.6
+# SCREEN 1 - POMBISS LIST v9.9
 # ============================================================
+# ============================================================
+# Options menu (single screen, panel info inside the same box)
+# ============================================================
+PANEL_PORT = 8776
+
+
+class PomBissOptionsBox(Screen):
+    def __init__(self, session, title="PomBiss Options", list=None, **kwargs):
+        f = 1.0 if FULLHD else 0.667
+
+        def sc(n):
+            return max(1, int(round(n * f)))
+
+        def lab(name, x, y, w, h, font, color="#ffffff", halign="left",
+                bg=None):
+            if bg:
+                trans = '0" backgroundColor="%s' % bg
+            else:
+                trans = '1'
+            return ('<widget name="%s" position="%d,%d" size="%d,%d" '
+                    'font="Regular;%d" transparent="%s" foregroundColor="%s" '
+                    'halign="%s" valign="center" />') % (
+                        name, sc(x), sc(y), sc(w), sc(h), sc(font), trans,
+                        color, halign)
+
+        parts = [
+            '<screen name="PomBissOptionsBox" position="center,center" '
+            'size="%d,%d" title="PomBiss Options" flags="wfNoBorder" '
+            'backgroundColor="#2b323a">' % (sc(945), sc(840)),
+            # inner black area
+            '<widget name="pb_bg" position="%d,%d" size="%d,%d" '
+            'font="Regular;1" transparent="0" backgroundColor="#0b0d10" />'
+            % (sc(6), sc(6), sc(933), sc(828)),
+            '<widget name="pb_listbg" position="%d,%d" size="%d,%d" '
+            'font="Regular;1" transparent="0" backgroundColor="#12161a" />'
+            % (sc(23), sc(75), sc(899), sc(745)),
+            lab("pb_head", 23, 18, 800, 56, 38),
+            '<widget name="list" position="%d,%d" size="%d,%d" '
+            'itemHeight="%d" font="Regular;%d" scrollbarMode="showNever" '
+            'transparent="1" foregroundColor="#ffffff" '
+            'backgroundColorSelected="#0b5ea8" '
+            'foregroundColorSelected="#ffffff" />'
+            % (sc(43), sc(76), sc(860), sc(300), sc(53), sc(34)),
+            # panel info
+            '<widget name="pb_line" position="%d,%d" size="%d,%d" '
+            'font="Regular;1" transparent="0" backgroundColor="#00aaff" />'
+            % (sc(43), sc(540), sc(860), max(3, sc(4))),
+            lab("pb_title", 23, 550, 899, 48, 34, "#1e90d6", "center"),
+            lab("pb_dev", 23, 598, 899, 32, 24, "#8b5cf6", "center"),
+            lab("pb_join", 23, 632, 440, 32, 24, "#b0b8c8", "right"),
+            lab("pb_link", 473, 632, 440, 32, 24, "#3b82f6", "left"),
+            '<widget name="pb_web_border" position="%d,%d" size="%d,%d" '
+            'font="Regular;1" transparent="0" backgroundColor="#f5a623" />'
+            % (sc(190), sc(680), sc(566), sc(48)),
+            lab("pb_web", 191, 681, 564, 46, 26, "#f5a623", "center",
+                bg="#000000"),
+            lab("pb_keys", 23, 780, 899, 40, 20, "#8a929c", "right"),
+            '</screen>',
+        ]
+        self.skin = "".join(parts)
+        Screen.__init__(self, session)
+
+        self["pb_bg"] = Label("")
+        self["pb_listbg"] = Label("")
+        self["pb_head"] = Label(title)
+        self["pb_line"] = Label("")
+        self["pb_title"] = Label("PomBiss Panel")
+        self["pb_dev"] = Label("Developed by @Shr776")
+        self["pb_join"] = Label("Join our Telegram Channel:")
+        self["pb_link"] = Label("https://t.me/VuSolo")
+        self["pb_web_border"] = Label("")
+        self["pb_web"] = Label("Web Access: http://Your Receiver Ip:%d" % PANEL_PORT)
+        self["pb_keys"] = Label("OK: Select    EXIT: Close")
+
+        self.pb_items = list or []
+        from Components.MenuList import MenuList
+        from Components.MultiContent import MultiContentEntryText
+        from enigma import (eListboxPythonMultiContent, gFont,
+                            RT_HALIGN_LEFT, RT_HALIGN_CENTER, RT_VALIGN_CENTER)
+        ih = sc(53)
+        entries = []
+        for i, it in enumerate(self.pb_items):
+            entries.append([
+                it,
+                MultiContentEntryText(
+                    pos=(sc(14), 0), size=(sc(50), ih), font=0,
+                    flags=RT_HALIGN_CENTER | RT_VALIGN_CENTER,
+                    text=str(i + 1), color=0xf5a623),
+                MultiContentEntryText(
+                    pos=(sc(80), 0), size=(sc(760), ih), font=0,
+                    flags=RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                    text=it[0]),
+            ])
+        menulist = MenuList(entries, content=eListboxPythonMultiContent)
+        menulist.l.setFont(0, gFont("Regular", sc(34)))
+        menulist.l.setItemHeight(ih)
+        self["list"] = menulist
+
+        self["actions"] = ActionMap(
+            ["OkCancelActions", "DirectionActions", "NumberActions"],
+            {
+                "ok": self.okPressed,
+                "cancel": self.cancelPressed,
+                "up": self["list"].up,
+                "down": self["list"].down,
+                "1": lambda: self.numberPressed(0),
+                "2": lambda: self.numberPressed(1),
+                "3": lambda: self.numberPressed(2),
+                "4": lambda: self.numberPressed(3),
+            }, -1)
+
+    def okPressed(self):
+        idx = self["list"].getSelectionIndex()
+        if 0 <= idx < len(self.pb_items):
+            self.close(self.pb_items[idx])
+        else:
+            self.close(None)
+
+    def numberPressed(self, idx):
+        if 0 <= idx < len(self.pb_items):
+            self.close(self.pb_items[idx])
+
+    def cancelPressed(self):
+        self.close(None)
+
+
 class PomBissList(Screen):
     PLUGIN_VERSION = updater.get_version()
 
     skinL = '''
 <screen name="PomBissList" position="center,center" size="1920,1080" title="PomBiss" flags="wfNoBorder" backgroundColor="#0a0a1a">
 
-    <widget source="global.CurrentTime" render="Label" position="1500,30" size="400,55"
-            font="Regular;40" transparent="1" foregroundColor="#ffffff"
-            halign="center" valign="center">
-        <convert type="ClockToText">Format:%H:%M</convert>
+    <!-- Background Image (Main) -->
+    <ePixmap name="bg_main" position="0,0" size="1920,1080" pixmap="''' + plugin_dir + '''/picon/bg_panel.png" alphatest="off" zPosition="-10" />
+
+    <!-- Header Clock & Date -->
+    <widget source="global.CurrentTime" render="Label" position="1527,20" size="207,76" font="''' + POM_CLOCK_FONT + ''';72" transparent="1" foregroundColor="#e8f1f8" halign="right" valign="center" zPosition="3" noWrap="1">
+        <convert type="ClockToText">Format:%H:</convert>
     </widget>
-    <widget source="global.CurrentTime" render="Label" position="1500,85" size="400,40"
-            font="Regular;22" transparent="1" foregroundColor="#00ffff"
-            halign="center" valign="center">
+    <widget source="global.CurrentTime" render="Label" position="1734,20" size="150,76" font="''' + POM_CLOCK_FONT + ''';72" transparent="1" foregroundColor="#ff5f1f" halign="left" valign="center" zPosition="3" noWrap="1">
+        <convert type="ClockToText">Format:%M</convert>
+    </widget>
+    <widget source="global.CurrentTime" render="Label" position="1525,88" size="400,40" font="Regular;22" transparent="1" foregroundColor="#00ffff" halign="center" valign="center">
         <convert type="ClockToText">Format:%A, %d %B %Y</convert>
     </widget>
 
-    <widget name="line_title_top" position="710,30" size="500,3"
-            font="Regular;1" transparent="0" backgroundColor="#00aaff" />
-    <ePixmap name="title_logo" position="860,40" size="200,80"
-             pixmap="''' + plugin_dir + '''/PomBiss_logo.png"
-             alphatest="on" zPosition="1" />
-    <widget name="line_title_bot" position="710,125" size="500,3"
-            font="Regular;1" transparent="0" backgroundColor="#00aaff" />
+    <!-- Logo & Title Area -->
+    <ePixmap name="title_logo" position="860,40" size="200,80" pixmap="''' + plugin_dir + '''/picon/PomBiss_logo.png" alphatest="on" zPosition="1" />
 
-    <widget name="version_label" position="50,98" size="780,30"
-            font="Regular;18" transparent="1" foregroundColor="#00ffff"
-            halign="center" valign="center" />
+    <widget name="version_label" position="50,98" size="780,30" font="''' + POM_CLOCK_FONT + ''';28" transparent="1" foregroundColor="#00ffff" halign="center" valign="center" />
 
-    <widget name="line_list_top" position="50,130" size="780,3"
-            font="Regular;1" transparent="0" backgroundColor="#00ff00" />
+    <!-- Left Panel (Feed List Header) -->
+    <widget name="list_header" position="60,150" size="200,40" font="Regular;22" transparent="1" foregroundColor="#00ff88" halign="left" valign="center" />
+    <widget name="feed_count" position="265,150" size="200,40" font="Regular;20" transparent="1" foregroundColor="#ffaa00" halign="left" valign="center" />
+    <widget name="header_text" position="470,150" size="350,40" font="Regular;20" transparent="1" foregroundColor="#00ffff" halign="right" valign="center" />
 
-    <widget name="list_header" position="60,138" size="200,40"
-            font="Regular;22" transparent="1" foregroundColor="#00ff00"
-            halign="left" valign="center" />
-    <widget name="feed_count" position="260,138" size="200,40"
-            font="Regular;20" transparent="1" foregroundColor="#ffaa00"
-            halign="left" valign="center" />
-    <widget name="header_text" position="480,138" size="350,40"
-            font="Regular;20" transparent="1" foregroundColor="#00ffff"
-            halign="right" valign="center" />
+    <!-- Card Style Feed Rows (1 to 10) - FuryBiss Style Columns -->
+    <!-- Selected row highlight (moves with the selection) -->
+    <widget name="sel_frame" position="53,193" size="774,59" font="Regular;1" transparent="0" backgroundColor="#00d8ff" zPosition="-3" />
+    <widget name="sel_fill" position="56,196" size="768,53" font="Regular;1" transparent="0" backgroundColor="#0f3f9c" zPosition="-2" />
 
-    <widget name="line_list_bot" position="50,185" size="780,3"
-            font="Regular;1" transparent="0" backgroundColor="#00ff00" />
+    <!-- Row 1 -->
+    <widget name="feed_num_1" position="65,195" size="70,55" font="Regular;30" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_sat_1" position="138,195" size="140,55" font="Bold;32" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_type_1" position="283,195" size="60,55" font="Regular;20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_freq_1" position="348,195" size="170,55" font="Regular;20" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_id_1" position="520,195" size="300,55" font="Regular;19" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
 
-    <widget name="feed_num_1" position="55,200" size="120,55"
-            font="Regular;40" transparent="1" foregroundColor="#ffff00"
-            halign="left" valign="center" />
-    <widget name="feed_sat_1" position="180,200" size="300,55"
-            font="Regular;22" transparent="1" foregroundColor="#00ff88"
-            halign="left" valign="center" />
-    <widget name="feed_freq_1" position="480,200" size="200,55"
-            font="Regular;22" transparent="1" foregroundColor="#00aaff"
-            halign="left" valign="center" />
-    <widget name="feed_id_1" position="680,200" size="160,55"
-            font="Regular;19" transparent="1" foregroundColor="#ffffff"
-            halign="left" valign="center" />
+    <!-- Row 2 -->
+    <widget name="feed_num_2" position="65,255" size="70,55" font="Regular;30" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_sat_2" position="138,255" size="140,55" font="Bold;32" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_type_2" position="283,255" size="60,55" font="Regular;20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_freq_2" position="348,255" size="170,55" font="Regular;20" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_id_2" position="520,255" size="300,55" font="Regular;19" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
 
-    <widget name="feed_num_2" position="55,260" size="120,55"
-            font="Regular;40" transparent="1" foregroundColor="#ffff00"
-            halign="left" valign="center" />
-    <widget name="feed_sat_2" position="180,260" size="300,55"
-            font="Regular;22" transparent="1" foregroundColor="#00ff88"
-            halign="left" valign="center" />
-    <widget name="feed_freq_2" position="480,260" size="200,55"
-            font="Regular;22" transparent="1" foregroundColor="#00aaff"
-            halign="left" valign="center" />
-    <widget name="feed_id_2" position="680,260" size="160,55"
-            font="Regular;19" transparent="1" foregroundColor="#ffffff"
-            halign="left" valign="center" />
+    <!-- Row 3 -->
+    <widget name="feed_num_3" position="65,315" size="70,55" font="Regular;30" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_sat_3" position="138,315" size="140,55" font="Bold;32" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_type_3" position="283,315" size="60,55" font="Regular;20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_freq_3" position="348,315" size="170,55" font="Regular;20" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_id_3" position="520,315" size="300,55" font="Regular;19" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
 
-    <widget name="feed_num_3" position="55,320" size="120,55"
-            font="Regular;40" transparent="1" foregroundColor="#ffff00"
-            halign="left" valign="center" />
-    <widget name="feed_sat_3" position="180,320" size="300,55"
-            font="Regular;22" transparent="1" foregroundColor="#00ff88"
-            halign="left" valign="center" />
-    <widget name="feed_freq_3" position="480,320" size="200,55"
-            font="Regular;22" transparent="1" foregroundColor="#00aaff"
-            halign="left" valign="center" />
-    <widget name="feed_id_3" position="680,320" size="160,55"
-            font="Regular;19" transparent="1" foregroundColor="#ffffff"
-            halign="left" valign="center" />
+    <!-- Row 4 -->
+    <widget name="feed_num_4" position="65,375" size="70,55" font="Regular;30" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_sat_4" position="138,375" size="140,55" font="Bold;32" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_type_4" position="283,375" size="60,55" font="Regular;20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_freq_4" position="348,375" size="170,55" font="Regular;20" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_id_4" position="520,375" size="300,55" font="Regular;19" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
 
-    <widget name="feed_num_4" position="55,380" size="120,55"
-            font="Regular;40" transparent="1" foregroundColor="#ffff00"
-            halign="left" valign="center" />
-    <widget name="feed_sat_4" position="180,380" size="300,55"
-            font="Regular;22" transparent="1" foregroundColor="#00ff88"
-            halign="left" valign="center" />
-    <widget name="feed_freq_4" position="480,380" size="200,55"
-            font="Regular;22" transparent="1" foregroundColor="#00aaff"
-            halign="left" valign="center" />
-    <widget name="feed_id_4" position="680,380" size="160,55"
-            font="Regular;19" transparent="1" foregroundColor="#ffffff"
-            halign="left" valign="center" />
+    <!-- Row 5 -->
+    <widget name="feed_num_5" position="65,435" size="70,55" font="Regular;30" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_sat_5" position="138,435" size="140,55" font="Bold;32" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_type_5" position="283,435" size="60,55" font="Regular;20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_freq_5" position="348,435" size="170,55" font="Regular;20" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_id_5" position="520,435" size="300,55" font="Regular;19" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
 
-    <widget name="feed_num_5" position="55,440" size="120,55"
-            font="Regular;40" transparent="1" foregroundColor="#ffff00"
-            halign="left" valign="center" />
-    <widget name="feed_sat_5" position="180,440" size="300,55"
-            font="Regular;22" transparent="1" foregroundColor="#00ff88"
-            halign="left" valign="center" />
-    <widget name="feed_freq_5" position="480,440" size="200,55"
-            font="Regular;22" transparent="1" foregroundColor="#00aaff"
-            halign="left" valign="center" />
-    <widget name="feed_id_5" position="680,440" size="160,55"
-            font="Regular;19" transparent="1" foregroundColor="#ffffff"
-            halign="left" valign="center" />
+    <!-- Row 6 -->
+    <widget name="feed_num_6" position="65,495" size="70,55" font="Regular;30" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_sat_6" position="138,495" size="140,55" font="Bold;32" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_type_6" position="283,495" size="60,55" font="Regular;20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_freq_6" position="348,495" size="170,55" font="Regular;20" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_id_6" position="520,495" size="300,55" font="Regular;19" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
 
-    <widget name="feed_num_6" position="55,500" size="120,55"
-            font="Regular;40" transparent="1" foregroundColor="#ffff00"
-            halign="left" valign="center" />
-    <widget name="feed_sat_6" position="180,500" size="300,55"
-            font="Regular;22" transparent="1" foregroundColor="#00ff88"
-            halign="left" valign="center" />
-    <widget name="feed_freq_6" position="480,500" size="200,55"
-            font="Regular;22" transparent="1" foregroundColor="#00aaff"
-            halign="left" valign="center" />
-    <widget name="feed_id_6" position="680,500" size="160,55"
-            font="Regular;19" transparent="1" foregroundColor="#ffffff"
-            halign="left" valign="center" />
+    <!-- Row 7 -->
+    <widget name="feed_num_7" position="65,555" size="70,55" font="Regular;30" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_sat_7" position="138,555" size="140,55" font="Bold;32" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_type_7" position="283,555" size="60,55" font="Regular;20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_freq_7" position="348,555" size="170,55" font="Regular;20" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_id_7" position="520,555" size="300,55" font="Regular;19" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
 
-    <widget name="feed_num_7" position="55,560" size="120,55"
-            font="Regular;40" transparent="1" foregroundColor="#ffff00"
-            halign="left" valign="center" />
-    <widget name="feed_sat_7" position="180,560" size="300,55"
-            font="Regular;22" transparent="1" foregroundColor="#00ff88"
-            halign="left" valign="center" />
-    <widget name="feed_freq_7" position="480,560" size="200,55"
-            font="Regular;22" transparent="1" foregroundColor="#00aaff"
-            halign="left" valign="center" />
-    <widget name="feed_id_7" position="680,560" size="160,55"
-            font="Regular;19" transparent="1" foregroundColor="#ffffff"
-            halign="left" valign="center" />
+    <!-- Row 8 -->
+    <widget name="feed_num_8" position="65,615" size="70,55" font="Regular;30" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_sat_8" position="138,615" size="140,55" font="Bold;32" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_type_8" position="283,615" size="60,55" font="Regular;20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_freq_8" position="348,615" size="170,55" font="Regular;20" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_id_8" position="520,615" size="300,55" font="Regular;19" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
 
-    <widget name="feed_num_8" position="55,620" size="120,55"
-            font="Regular;40" transparent="1" foregroundColor="#ffff00"
-            halign="left" valign="center" />
-    <widget name="feed_sat_8" position="180,620" size="300,55"
-            font="Regular;22" transparent="1" foregroundColor="#00ff88"
-            halign="left" valign="center" />
-    <widget name="feed_freq_8" position="480,620" size="200,55"
-            font="Regular;22" transparent="1" foregroundColor="#00aaff"
-            halign="left" valign="center" />
-    <widget name="feed_id_8" position="680,620" size="160,55"
-            font="Regular;19" transparent="1" foregroundColor="#ffffff"
-            halign="left" valign="center" />
+    <!-- Row 9 -->
+    <widget name="feed_num_9" position="65,675" size="70,55" font="Regular;30" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_sat_9" position="138,675" size="140,55" font="Bold;32" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_type_9" position="283,675" size="60,55" font="Regular;20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_freq_9" position="348,675" size="170,55" font="Regular;20" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_id_9" position="520,675" size="300,55" font="Regular;19" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
 
-    <widget name="feed_num_9" position="55,680" size="120,55"
-            font="Regular;40" transparent="1" foregroundColor="#ffff00"
-            halign="left" valign="center" />
-    <widget name="feed_sat_9" position="180,680" size="300,55"
-            font="Regular;22" transparent="1" foregroundColor="#00ff88"
-            halign="left" valign="center" />
-    <widget name="feed_freq_9" position="480,680" size="200,55"
-            font="Regular;22" transparent="1" foregroundColor="#00aaff"
-            halign="left" valign="center" />
-    <widget name="feed_id_9" position="680,680" size="160,55"
-            font="Regular;19" transparent="1" foregroundColor="#ffffff"
-            halign="left" valign="center" />
+    <!-- Row 10 -->
+    <widget name="feed_num_10" position="65,735" size="70,55" font="Regular;30" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_sat_10" position="138,735" size="140,55" font="Bold;32" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_type_10" position="283,735" size="60,55" font="Regular;20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_freq_10" position="348,735" size="170,55" font="Regular;20" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_id_10" position="520,735" size="300,55" font="Regular;19" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
 
-    <widget name="feed_num_10" position="55,740" size="120,55"
-            font="Regular;40" transparent="1" foregroundColor="#ffff00"
-            halign="left" valign="center" />
-    <widget name="feed_sat_10" position="180,740" size="300,55"
-            font="Regular;22" transparent="1" foregroundColor="#00ff88"
-            halign="left" valign="center" />
-    <widget name="feed_freq_10" position="480,740" size="200,55"
-            font="Regular;22" transparent="1" foregroundColor="#00aaff"
-            halign="left" valign="center" />
-    <widget name="feed_id_10" position="680,740" size="160,55"
-            font="Regular;19" transparent="1" foregroundColor="#ffffff"
-            halign="left" valign="center" />
+    <!-- Page Counter -->
+    <widget name="page_counter" position="50,798" size="780,50" font="''' + POM_CLOCK_FONT + ''';30" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" />
 
-    <widget name="line_page_top" position="50,820" size="780,3"
-            font="Regular;1" transparent="0" backgroundColor="#00ff00" />
-    <widget name="page_counter" position="50,825" size="780,50"
-            font="Regular;28" transparent="1" foregroundColor="#ffff00"
-            halign="center" valign="center" />
-    <widget name="line_page_bot" position="50,880" size="780,3"
-            font="Regular;1" transparent="0" backgroundColor="#00ff00" />
+    <!-- Bottom Buttons -->
+    <widget name="btn_red_bg" position="50,895" size="140,60" font="Regular;1" transparent="0" backgroundColor="#ff0000" />
+    <widget name="key_red" position="50,895" size="140,60" font="Regular;22" transparent="1" foregroundColor="#000000" halign="center" valign="center" />
 
-    <widget name="btn_red_bg" position="50,895" size="140,60"
-            font="Regular;1" transparent="0" backgroundColor="#ff0000" />
-    <widget name="key_red" position="50,895" size="140,60"
-            font="Regular;22" transparent="1" foregroundColor="#000000"
-            halign="center" valign="center" />
+    <widget name="btn_green_bg" position="200,895" size="140,60" font="Regular;1" transparent="0" backgroundColor="#00ff00" />
+    <widget name="key_green" position="200,895" size="140,60" font="Regular;22" transparent="1" foregroundColor="#000000" halign="center" valign="center" />
 
-    <widget name="btn_green_bg" position="200,895" size="140,60"
-            font="Regular;1" transparent="0" backgroundColor="#00ff00" />
-    <widget name="key_green" position="200,895" size="140,60"
-            font="Regular;22" transparent="1" foregroundColor="#000000"
-            halign="center" valign="center" />
+    <widget name="btn_yellow_bg" position="350,895" size="140,60" font="Regular;1" transparent="0" backgroundColor="#ffff00" />
+    <widget name="key_yellow" position="350,895" size="140,60" font="Regular;22" transparent="1" foregroundColor="#000000" halign="center" valign="center" />
 
-    <widget name="btn_yellow_bg" position="350,895" size="140,60"
-            font="Regular;1" transparent="0" backgroundColor="#ffff00" />
-    <widget name="key_yellow" position="350,895" size="140,60"
-            font="Regular;22" transparent="1" foregroundColor="#000000"
-            halign="center" valign="center" />
+    <widget name="btn_blue_bg" position="500,895" size="140,60" font="Regular;1" transparent="0" backgroundColor="#00ccff" />
+    <widget name="key_blue" position="500,895" size="140,60" font="Regular;22" transparent="1" foregroundColor="#000000" halign="center" valign="center" />
 
-    <widget name="btn_blue_bg" position="500,895" size="140,60"
-            font="Regular;1" transparent="0" backgroundColor="#00ccff" />
-    <widget name="key_blue" position="500,895" size="140,60"
-            font="Regular;22" transparent="1" foregroundColor="#000000"
-            halign="center" valign="center" />
+    <widget name="btn_m3u_bg" position="650,895" size="140,60" font="Regular;1" transparent="0" backgroundColor="#9933ff" />
+    <widget name="key_m3u" position="650,895" size="140,60" font="Regular;22" transparent="1" foregroundColor="#ffffff" halign="center" valign="center" />
 
-    <widget name="btn_m3u_bg" position="650,895" size="140,60"
-            font="Regular;1" transparent="0" backgroundColor="#9933ff" />
-    <widget name="key_m3u" position="650,895" size="140,60"
-            font="Regular;22" transparent="1" foregroundColor="#ffffff"
-            halign="center" valign="center" />
+    <!-- Right Panel (Text over Image) -->
+    <!-- Preview Area -->
+    <widget source="session.VideoPicture" render="Pig" position="970,140" size="800,450" zPosition="30" backgroundColor="transparent" />
+    
+    <!-- Preview Borders (Neon Glow effect) -->
+    <widget name="preview_border_top" position="970,138" size="800,3" font="Regular;1" transparent="0" backgroundColor="#00aaff" zPosition="31" />
+    <widget name="preview_border_bot" position="970,590" size="800,3" font="Regular;1" transparent="0" backgroundColor="#00aaff" zPosition="31" />
+    <widget name="preview_border_left" position="967,138" size="3,456" font="Regular;1" transparent="0" backgroundColor="#00aaff" zPosition="31" />
+    <widget name="preview_border_right" position="1767,138" size="3,456" font="Regular;1" transparent="0" backgroundColor="#00aaff" zPosition="31" />
 
-    <widget name="line_buttons_bot" position="50,975" size="740,3"
-            font="Regular;1" transparent="0" backgroundColor="#00ff00" />
+    <!-- Category Title (Hashtag) -->
+    <widget name="label_category" position="997,637" size="750,35" font="Regular;16" transparent="1" foregroundColor="#ffffff" halign="center" valign="center" zPosition="1" />
 
-    <widget name="preview_glow_top" position="962,130" size="816,18"
-            font="Regular;1" transparent="0" backgroundColor="#0088cc"
-            zPosition="29" />
-    <widget name="preview_glow_bot" position="962,582" size="816,18"
-            font="Regular;1" transparent="0" backgroundColor="#0088cc"
-            zPosition="29" />
-    <widget name="preview_glow_left" position="959,130" size="18,470"
-            font="Regular;1" transparent="0" backgroundColor="#0088cc"
-            zPosition="29" />
-    <widget name="preview_glow_right" position="1763,130" size="18,470"
-            font="Regular;1" transparent="0" backgroundColor="#0088cc"
-            zPosition="29" />
+    <!-- Info Panel Text -->
+    <widget name="label_satellite" position="860,699" size="1010,35" font="''' + POM_CLOCK_FONT + ''';30" transparent="1" foregroundColor="#ffffff" halign="center" valign="center" zPosition="1" />
+    <widget name="label_frequency" position="860,750" size="1010,35" font="''' + POM_CLOCK_FONT + ''';28" transparent="1" foregroundColor="#ffffff" halign="center" valign="center" zPosition="1" />
+    <widget name="label_id" position="860,801" size="1010,35" font="''' + POM_CLOCK_FONT + ''';28" transparent="1" foregroundColor="#ffffff" halign="center" valign="center" zPosition="1" />
+    <widget name="label_cw" position="860,851" size="1010,35" font="''' + POM_CLOCK_FONT + ''';28" transparent="1" foregroundColor="#ffffff" halign="center" valign="center" zPosition="1" />
 
-    <widget source="session.VideoPicture" render="Pig" 
-            position="970,140" size="800,450" 
-            zPosition="30" backgroundColor="transparent"/>
+    <!-- Datetime Info -->
+    <widget name="label_datetime" position="860,927" size="1010,25" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#94a3b8" halign="center" valign="center" zPosition="1" />
 
-    <widget name="preview_border_top" position="970,138" size="800,3"
-            font="Regular;1" transparent="0" backgroundColor="#00aaff" zPosition="31" />
-    <widget name="preview_border_bot" position="970,590" size="800,3"
-            font="Regular;1" transparent="0" backgroundColor="#00aaff" zPosition="31" />
-    <widget name="preview_border_left" position="967,138" size="3,456"
-            font="Regular;1" transparent="0" backgroundColor="#00aaff" zPosition="31" />
-    <widget name="preview_border_right" position="1767,138" size="3,456"
-            font="Regular;1" transparent="0" backgroundColor="#00aaff" zPosition="31" />
+    <!-- Brand Label -->
+    <widget name="brand_label" position="960,972" size="810,35" font="Regular;24" transparent="1" foregroundColor="#ffffff" halign="center" valign="center" zPosition="1" />
 
-    <widget name="line_cat_top" position="860,600" size="1010,3"
-            font="Regular;1" transparent="0" backgroundColor="#ff0000" />
-    <widget name="label_category" position="860,605" size="1010,55"
-            font="Regular;22" transparent="1" foregroundColor="#ffffff"
-            halign="center" valign="center" />
-    <widget name="line_cat_bot" position="860,660" size="1010,3"
-            font="Regular;1" transparent="0" backgroundColor="#ff0000" />
-
-    <widget name="line_sat_top" position="960,670" size="810,3"
-            font="Regular;1" transparent="0" backgroundColor="#00ff00" />
-    <widget name="label_satellite" position="960,675" size="810,45"
-            font="Regular;28" transparent="1" foregroundColor="#ffffff"
-            halign="center" valign="center" />
-    <widget name="line_sat_bot" position="960,720" size="810,3"
-            font="Regular;1" transparent="0" backgroundColor="#00ff00" />
-
-    <widget name="line_freq_top" position="910,730" size="910,3"
-            font="Regular;1" transparent="0" backgroundColor="#00aaff" />
-    <widget name="label_frequency" position="910,735" size="910,45"
-            font="Regular;26" transparent="1" foregroundColor="#ffffff"
-            halign="center" valign="center" />
-    <widget name="line_freq_bot" position="910,780" size="910,3"
-            font="Regular;1" transparent="0" backgroundColor="#00aaff" />
-
-    <widget name="line_id_top" position="910,790" size="910,3"
-            font="Regular;1" transparent="0" backgroundColor="#00ff00" />
-    <widget name="label_id" position="910,795" size="910,45"
-            font="Regular;28" transparent="1" foregroundColor="#ffffff"
-            halign="center" valign="center" />
-    <widget name="line_id_bot" position="910,840" size="910,3"
-            font="Regular;1" transparent="0" backgroundColor="#00ff00" />
-
-    <widget name="line_cw_top" position="860,850" size="1010,3"
-            font="Regular;1" transparent="0" backgroundColor="#ff0000" />
-    <widget name="label_cw" position="860,855" size="1010,55"
-            font="Regular;32" transparent="1" foregroundColor="#00ff00"
-            halign="center" valign="center" />
-    <widget name="line_cw_bot" position="860,910" size="1010,3"
-            font="Regular;1" transparent="0" backgroundColor="#ff0000" />
-
-    <widget name="label_datetime" position="860,920" size="1010,30"
-            font="Regular;20" transparent="1" foregroundColor="#00ffff"
-            halign="center" valign="center" />
-
-    <widget name="line_brand_top" position="960,965" size="810,2"
-            font="Regular;1" transparent="0" backgroundColor="#00aaff" />
-    <widget name="brand_label" position="960,970" size="810,30"
-            font="Regular;24" transparent="1" foregroundColor="#00ffff"
-            halign="center" valign="center" />
-    <widget name="line_brand_bot" position="960,1002" size="810,2"
-            font="Regular;1" transparent="0" backgroundColor="#00aaff" />
-
-    <widget name="nav_help" position="50,1030" size="780,40"
-            font="Regular;18" transparent="1" foregroundColor="#dddddd"
-            halign="center" valign="center" />
+    <!-- Navigation Help -->
+    <widget name="nav_help" position="50,1025" size="780,40" font="Regular;18" transparent="1" foregroundColor="#dddddd" halign="center" valign="center" zPosition="1" />
 
 </screen>'''
 
@@ -1568,34 +1553,21 @@ class PomBissList(Screen):
             -1
         )
 
-        for line in ["line_title_top", "line_title_bot",
-                     "line_list_top", "line_list_bot",
-                     "line_page_top", "line_page_bot",
-                     "line_buttons_bot",
-                     "preview_glow_top", "preview_glow_bot",
-                     "preview_glow_left", "preview_glow_right",
-                     "preview_border_top", "preview_border_bot",
-                     "preview_border_left", "preview_border_right",
-                     "line_cat_top", "line_cat_bot",
-                     "line_sat_top", "line_sat_bot",
-                     "line_freq_top", "line_freq_bot",
-                     "line_id_top", "line_id_bot",
-                     "line_cw_top", "line_cw_bot",
-                     "line_brand_top", "line_brand_bot"]:
-            self[line] = Label("")
-
-        self["title_logo"] = Pixmap()
         self["list_header"] = Label("FEED LIST")
         self["feed_count"] = Label("")
         self["header_text"] = Label("PomBiss Feed Viewer")
         self["page_counter"] = Label("[1/1]")
-        self["brand_label"] = Label("@VUSOLO")
-
+        self["brand_label"] = Label("join us in Telegram @VUSOLO")
         self["version_label"] = Label("PomBiss Plugin v%s" % self.PLUGIN_VERSION)
+        self["title_logo"] = Pixmap()
+        self["bg_select"] = Pixmap()
+        self["sel_frame"] = Label("")
+        self["sel_fill"] = Label("")
 
         for i in range(1, 11):
             self["feed_num_%d" % i] = Label("")
             self["feed_sat_%d" % i] = Label("")
+            self["feed_type_%d" % i] = Label("")
             self["feed_freq_%d" % i] = Label("")
             self["feed_id_%d" % i] = Label("")
 
@@ -1605,16 +1577,6 @@ class PomBissList(Screen):
         self["label_id"] = Label("")
         self["label_cw"] = Label("")
         self["label_datetime"] = Label("")
-
-        self["preview_glow_top"] = Label("")
-        self["preview_glow_bot"] = Label("")
-        self["preview_glow_left"] = Label("")
-        self["preview_glow_right"] = Label("")
-
-        self["preview_border_top"] = Label("")
-        self["preview_border_bot"] = Label("")
-        self["preview_border_left"] = Label("")
-        self["preview_border_right"] = Label("")
 
         self["btn_red_bg"] = Label("")
         self["btn_green_bg"] = Label("")
@@ -1628,11 +1590,11 @@ class PomBissList(Screen):
         self["key_blue"] = Label("Clear")
         self["key_m3u"] = Label("M3U")
 
-        self["nav_help"] = Label(
-            "Up/Down: Select  |  OK: Scan  |  MENU: Options  |  M3U: Export"
-        )
+        self["nav_help"] = Label("Up/Down: Select  |  OK: Scan  |  MENU: Options  |  M3U: Export")
 
-        # ⭐ v5.6: چک auto-cleanup موقع باز شدن پلاگین
+        for line in ["preview_border_top", "preview_border_bot", "preview_border_left", "preview_border_right"]:
+            self[line] = Label("")
+
         try:
             if check_and_auto_cleanup():
                 log_debug("Auto-cleanup done at PomBissList open")
@@ -1651,7 +1613,7 @@ class PomBissList(Screen):
         
         self.session.openWithCallback(
             self._menu_callback,
-            ChoiceBox,
+            PomBissOptionsBox,
             title="PomBiss Options",
             list=menu_list
         )
@@ -1720,52 +1682,74 @@ class PomBissList(Screen):
         total_pages = (total + self.feeds_per_page - 1) // self.feeds_per_page
         self["page_counter"].setText("[%d/%d]" % (page_num, total_pages))
 
+        # move the highlight frame to the selected row
+        try:
+            slot = self.current_index - self.page_start
+            if 0 <= slot < self.feeds_per_page:
+                row_y = 195 + 60 * slot
+                self["sel_frame"].instance.move(ePoint(53, row_y - 2))
+                self["sel_fill"].instance.move(ePoint(56, row_y + 1))
+                self["sel_frame"].show()
+                self["sel_fill"].show()
+            else:
+                self["sel_frame"].hide()
+                self["sel_fill"].hide()
+        except Exception as e:
+            log_debug("highlight move error: %s" % str(e))
+
         for i in range(1, 11):
             feed_idx = self.page_start + i - 1
 
             if feed_idx < total:
                 line = self.allfeeds[feed_idx]
-                parts = line.split("=")
+                parts = [p.strip() for p in line.split("=")]
 
                 freq_parts = parts[0].strip().split()
                 freq = freq_parts[1] if len(freq_parts) > 1 else ""
                 pol = freq_parts[2] if len(freq_parts) > 2 else ""
                 sr = freq_parts[3] if len(freq_parts) > 3 else ""
+                pos = freq_parts[0] if len(freq_parts) > 0 else ""
 
                 sat_label = parts[3].strip() if len(parts) > 3 else ""
+                
+                # ?????? ID (?????? 5)? ??? ???? ??? Event (?????? 4)
                 feed_id = parts[5].strip() if len(parts) > 5 else ""
+                if not feed_id:
+                    feed_id = parts[4].strip() if len(parts) > 4 else ""
+                
+                # ????? ???? ????? ?????
+                if "4:2" in feed_id or "HD" in feed_id or "1920" in feed_id:
+                    feed_id = ""
 
                 if not sat_label or sat_label == "0":
-                    sat_pos = freq_parts[0] if len(freq_parts) > 0 else ""
-                    sat_label = POSITION_FIX.get(sat_pos, sat_label)
+                    sat_label = POSITION_FIX.get(pos, sat_label)
 
+                short_sat = get_short_sat_name(sat_label, pos)
+                
+                feed_type = "4:2:0" 
+                if "4:2:2" in line:
+                    feed_type = "4:2:2"
+
+                names = ("num", "sat", "type", "freq", "id")
                 if feed_idx == self.current_index:
-                    self["feed_num_%d" % i].setText(">[%d]" % (feed_idx + 1))
-                    self["feed_sat_%d" % i].setText(sat_label)
-                    self["feed_freq_%d" % i].setText("%s %s %s" % (freq, pol, sr))
-                    self["feed_id_%d" % i].setText(feed_id)
-                    try:
-                        self["feed_num_%d" % i].instance.setForegroundColor(0xffff00)
-                        self["feed_sat_%d" % i].instance.setForegroundColor(0xffff00)
-                        self["feed_freq_%d" % i].instance.setForegroundColor(0xffff00)
-                        self["feed_id_%d" % i].instance.setForegroundColor(0xffff00)
-                    except:
-                        pass
+                    colors = (0xffff00, 0xa8d0ff, 0xffffff, 0xff8a95, 0x7dffb0)
+                    num_text = ">[%d]" % (feed_idx + 1)
                 else:
-                    self["feed_num_%d" % i].setText(" [%d]" % (feed_idx + 1))
-                    self["feed_sat_%d" % i].setText(sat_label)
-                    self["feed_freq_%d" % i].setText("%s %s %s" % (freq, pol, sr))
-                    self["feed_id_%d" % i].setText(feed_id)
+                    colors = (0xffff00, 0x4da3ff, 0xffffff, 0xff4d5e, 0x00e676)
+                    num_text = " [%d]" % (feed_idx + 1)
+                texts = (num_text, short_sat, feed_type,
+                         "%s %s %s" % (freq, pol, sr), feed_id)
+                for n, col, txt in zip(names, colors, texts):
+                    w = self["feed_%s_%d" % (n, i)]
                     try:
-                        self["feed_num_%d" % i].instance.setForegroundColor(0xffff00)
-                        self["feed_sat_%d" % i].instance.setForegroundColor(0x00ff88)
-                        self["feed_freq_%d" % i].instance.setForegroundColor(0x00aaff)
-                        self["feed_id_%d" % i].instance.setForegroundColor(0xffffff)
+                        w.instance.setForegroundColor(gRGB(col))
                     except:
                         pass
+                    w.setText(txt)
             else:
                 self["feed_num_%d" % i].setText("")
                 self["feed_sat_%d" % i].setText("")
+                self["feed_type_%d" % i].setText("")
                 self["feed_freq_%d" % i].setText("")
                 self["feed_id_%d" % i].setText("")
 
@@ -1784,16 +1768,24 @@ class PomBissList(Screen):
         freq = freq_parts[1] if len(freq_parts) > 1 else ""
         pol = freq_parts[2] if len(freq_parts) > 2 else ""
         sr = freq_parts[3] if len(freq_parts) > 3 else ""
+        pos = freq_parts[0] if len(freq_parts) > 0 else ""
 
         cw_key = parts[1] if len(parts) > 1 else ""
         title = parts[2] if len(parts) > 2 else ""
         sat_label = parts[3] if len(parts) > 3 else ""
-        feed_id = parts[5] if len(parts) > 5 else ""
+        
+        # ?????? ID? ??? ???? ??? Event
+        feed_id = parts[5].strip() if len(parts) > 5 else ""
+        if not feed_id:
+            feed_id = parts[4].strip() if len(parts) > 4 else ""
+            
+        if "4:2" in feed_id or "HD" in feed_id or "1920" in feed_id:
+            feed_id = ""
+
         feed_datetime = parts[8] if len(parts) > 8 else ""
 
         if not sat_label or sat_label == "0":
-            sat_pos = freq_parts[0] if len(freq_parts) > 0 else ""
-            sat_label = POSITION_FIX.get(sat_pos, sat_label)
+            sat_label = POSITION_FIX.get(pos, sat_label)
 
         self["label_category"].setText("# " + title)
         self["label_satellite"].setText(sat_label)
@@ -1920,6 +1912,13 @@ class PomBissList(Screen):
             freq_parts = parts[0].split()
             if len(freq_parts) < 4:
                 return None
+            
+            feed_id = parts[5].strip() if len(parts) > 5 else ""
+            if not feed_id:
+                feed_id = parts[4].strip() if len(parts) > 4 else ""
+            if "4:2" in feed_id or "HD" in feed_id or "1920" in feed_id:
+                feed_id = ""
+
             return {
                 "position": freq_parts[0],
                 "freq": freq_parts[1],
@@ -1928,7 +1927,7 @@ class PomBissList(Screen):
                 "cw": parts[1].replace(" ", "").upper(),
                 "name": parts[2] if len(parts) > 2 else "",
                 "sat": parts[3] if len(parts) > 3 else "",
-                "feed_id": parts[5] if len(parts) > 5 else "",
+                "feed_id": feed_id,
             }
         except Exception as e:
             log_debug("parse error: %s" % str(e))
@@ -2003,6 +2002,12 @@ def main(session, **kwargs):
 
 
 def Plugins(**kwargs):
+    # Start webserver
+    try:
+        webserver.start_server()
+    except Exception as e:
+        log_debug("Plugin webserver start error: %s" % str(e))
+
     return PluginDescriptor(
         name="PomBiss",
         description="Sports Feed Viewer",
