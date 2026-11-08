@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # ============================================================
-#   PomBiss Plugin Installer v2.4
+#   PomBiss Plugin Installer v2.8
 # ============================================================
 #
 #   Sports Feed Viewer for Enigma2
@@ -17,7 +17,7 @@
 
 # --- Settings ---
 PLUGIN_NAME="PomBiss"
-PLUGIN_VERSION="2.4"
+PLUGIN_VERSION="2.8"
 PLUGIN_DIR="/usr/lib/enigma2/python/Plugins/Extensions/PomBiss"
 GITHUB_RAW="https://raw.githubusercontent.com/Shr776/PomBiss/main"
 TEMP_DIR="/tmp/pombiss_install"
@@ -54,6 +54,7 @@ rm -rf "$TEMP_DIR"
 mkdir -p "$TEMP_DIR"
 mkdir -p "$TEMP_DIR/files"
 mkdir -p "$TEMP_DIR/files/picon"
+mkdir -p "$TEMP_DIR/files/fonts"
 
 # --- Download function ---
 download_file() {
@@ -97,6 +98,12 @@ if ! download_file "$GITHUB_RAW/picon/PomBiss_logo.png" "$TEMP_DIR/files/picon/P
     FAILED=$((FAILED + 1))
 fi
 
+# --- Download fonts ---
+echo ">>> Downloading font files..."
+if ! download_file "$GITHUB_RAW/fonts/ChakraPetch-Bold.ttf" "$TEMP_DIR/files/fonts/ChakraPetch-Bold.ttf"; then
+    FAILED=$((FAILED + 1))
+fi
+
 if [ "$FAILED" -gt 0 ]; then
     echo ""
     echo "[WARNING] $FAILED file(s) failed to download"
@@ -111,7 +118,7 @@ if [ ! -d "$PLUGIN_DIR" ]; then
     mkdir -p "$PLUGIN_DIR"
 fi
 
-for file in $(ls "$TEMP_DIR/files/" | grep -v "picon"); do
+for file in $(ls "$TEMP_DIR/files/" | grep -v "picon" | grep -v "fonts"); do
     cp -f "$TEMP_DIR/files/$file" "$PLUGIN_DIR/$file" 2>/dev/null
 done
 
@@ -119,6 +126,11 @@ if [ ! -d "$PLUGIN_DIR/picon" ]; then
     mkdir -p "$PLUGIN_DIR/picon"
 fi
 cp -f "$TEMP_DIR/files/picon/"* "$PLUGIN_DIR/picon/" 2>/dev/null
+
+if [ ! -d "$PLUGIN_DIR/fonts" ]; then
+    mkdir -p "$PLUGIN_DIR/fonts"
+fi
+cp -f "$TEMP_DIR/files/fonts/"* "$PLUGIN_DIR/fonts/" 2>/dev/null
 
 # --- Remove old pyc ---
 echo ">>> Removing old .pyo / .pyc files..."
@@ -130,6 +142,8 @@ chmod 644 "$PLUGIN_DIR"/*.py 2>/dev/null
 chmod 644 "$PLUGIN_DIR"/*.png 2>/dev/null
 chmod 755 "$PLUGIN_DIR/picon" 2>/dev/null
 chmod 644 "$PLUGIN_DIR/picon/"* 2>/dev/null
+chmod 755 "$PLUGIN_DIR/fonts" 2>/dev/null
+chmod 644 "$PLUGIN_DIR/fonts/"* 2>/dev/null
 
 # --- Show version ---
 NEW_VERSION=$(cat "$TEMP_DIR/files/version.txt" 2>/dev/null | head -n 1)
