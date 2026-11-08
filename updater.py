@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-PomBiss Updater Module v2.4
+PomBiss Updater Module v2.8
 - Uses Console screen to show installation progress live
 - Runs installer via wget | sh (like RaedQuickSignal)
 - Creates marker file /tmp/pombiss_from_plugin so installer knows source
@@ -22,7 +22,7 @@ from Screens.Standby import TryQuitMainloop
 from enigma import eTimer
 
 
-PLUGIN_VERSION = "2.4"
+PLUGIN_VERSION = "2.8"
 
 VERSION_URL = "https://raw.githubusercontent.com/Shr776/PomBiss/main/version.txt"
 INSTALLER_URL = "https://raw.githubusercontent.com/Shr776/PomBiss/main/installer.sh"
