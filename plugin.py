@@ -449,7 +449,7 @@ POSITION_FIX = {
     "216": "Eutelsat 21C ( 21.6E )",
 }
 
-# тн? ???з?и?╣ ?м?п?М?п ?и?▒?з?М ?й?И???з?З ?й?▒?п?Ж ?з?│?Е ?Е?з?З?И?з?▒?З
+# (comment text was corrupted in the uploaded file - replaced)
 def get_short_sat_name(sat_str, pos_str):
     if not sat_str or sat_str == "0":
         if pos_str:
@@ -1390,12 +1390,12 @@ class PomBissList(Screen):
     <!-- Logo & Title Area -->
     <ePixmap name="title_logo" position="860,40" size="200,80" pixmap="''' + plugin_dir + '''/picon/PomBiss_logo.png" alphatest="on" zPosition="1" />
 
-    <widget name="version_label" position="50,98" size="780,30" font="''' + POM_CLOCK_FONT + ''';28" transparent="1" foregroundColor="#00ffff" halign="center" valign="center" />
+    <widget name="version_label" position="50,88" size="780,46" font="''' + POM_CLOCK_FONT + ''';28" transparent="1" foregroundColor="#00ffff" halign="center" valign="center" />
 
     <!-- Left Panel (Feed List Header) -->
-    <widget name="list_header" position="60,150" size="200,40" font="Regular;22" transparent="1" foregroundColor="#00ff88" halign="left" valign="center" />
-    <widget name="feed_count" position="265,150" size="200,40" font="Regular;20" transparent="1" foregroundColor="#ffaa00" halign="left" valign="center" />
-    <widget name="header_text" position="470,150" size="350,40" font="Regular;20" transparent="1" foregroundColor="#00ffff" halign="right" valign="center" />
+    <widget name="list_header" position="60,150" size="200,40" font="''' + POM_CLOCK_FONT + ''';22" transparent="1" foregroundColor="#00ff88" halign="left" valign="center" />
+    <widget name="feed_count" position="265,150" size="200,40" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#ffaa00" halign="left" valign="center" />
+    <widget name="header_text" position="470,150" size="350,40" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#00ffff" halign="right" valign="center" />
 
     <!-- Card Style Feed Rows (1 to 10) - FuryBiss Style Columns -->
     <!-- Selected row highlight (moves with the selection) -->
@@ -1403,74 +1403,74 @@ class PomBissList(Screen):
     <widget name="sel_fill" position="56,196" size="768,53" font="Regular;1" transparent="0" backgroundColor="#0f3f9c" zPosition="-2" />
 
     <!-- Row 1 -->
-    <widget name="feed_num_1" position="65,195" size="70,55" font="Regular;30" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_sat_1" position="138,195" size="140,55" font="Bold;32" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
-    <widget name="feed_type_1" position="283,195" size="60,55" font="Regular;20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_freq_1" position="348,195" size="170,55" font="Regular;20" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_id_1" position="520,195" size="300,55" font="Regular;19" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_num_1" position="65,195" size="70,55" font="''' + POM_CLOCK_FONT + ''';27" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_sat_1" position="138,195" size="140,55" font="''' + POM_CLOCK_FONT + ''';30" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_type_1" position="283,195" size="64,55" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_freq_1" position="348,195" size="170,55" font="''' + POM_CLOCK_FONT + ''';19" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_id_1" position="520,195" size="300,55" font="''' + POM_CLOCK_FONT + ''';18" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
 
     <!-- Row 2 -->
-    <widget name="feed_num_2" position="65,255" size="70,55" font="Regular;30" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_sat_2" position="138,255" size="140,55" font="Bold;32" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
-    <widget name="feed_type_2" position="283,255" size="60,55" font="Regular;20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_freq_2" position="348,255" size="170,55" font="Regular;20" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_id_2" position="520,255" size="300,55" font="Regular;19" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_num_2" position="65,255" size="70,55" font="''' + POM_CLOCK_FONT + ''';27" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_sat_2" position="138,255" size="140,55" font="''' + POM_CLOCK_FONT + ''';30" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_type_2" position="283,255" size="64,55" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_freq_2" position="348,255" size="170,55" font="''' + POM_CLOCK_FONT + ''';19" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_id_2" position="520,255" size="300,55" font="''' + POM_CLOCK_FONT + ''';18" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
 
     <!-- Row 3 -->
-    <widget name="feed_num_3" position="65,315" size="70,55" font="Regular;30" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_sat_3" position="138,315" size="140,55" font="Bold;32" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
-    <widget name="feed_type_3" position="283,315" size="60,55" font="Regular;20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_freq_3" position="348,315" size="170,55" font="Regular;20" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_id_3" position="520,315" size="300,55" font="Regular;19" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_num_3" position="65,315" size="70,55" font="''' + POM_CLOCK_FONT + ''';27" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_sat_3" position="138,315" size="140,55" font="''' + POM_CLOCK_FONT + ''';30" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_type_3" position="283,315" size="64,55" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_freq_3" position="348,315" size="170,55" font="''' + POM_CLOCK_FONT + ''';19" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_id_3" position="520,315" size="300,55" font="''' + POM_CLOCK_FONT + ''';18" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
 
     <!-- Row 4 -->
-    <widget name="feed_num_4" position="65,375" size="70,55" font="Regular;30" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_sat_4" position="138,375" size="140,55" font="Bold;32" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
-    <widget name="feed_type_4" position="283,375" size="60,55" font="Regular;20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_freq_4" position="348,375" size="170,55" font="Regular;20" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_id_4" position="520,375" size="300,55" font="Regular;19" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_num_4" position="65,375" size="70,55" font="''' + POM_CLOCK_FONT + ''';27" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_sat_4" position="138,375" size="140,55" font="''' + POM_CLOCK_FONT + ''';30" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_type_4" position="283,375" size="64,55" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_freq_4" position="348,375" size="170,55" font="''' + POM_CLOCK_FONT + ''';19" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_id_4" position="520,375" size="300,55" font="''' + POM_CLOCK_FONT + ''';18" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
 
     <!-- Row 5 -->
-    <widget name="feed_num_5" position="65,435" size="70,55" font="Regular;30" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_sat_5" position="138,435" size="140,55" font="Bold;32" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
-    <widget name="feed_type_5" position="283,435" size="60,55" font="Regular;20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_freq_5" position="348,435" size="170,55" font="Regular;20" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_id_5" position="520,435" size="300,55" font="Regular;19" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_num_5" position="65,435" size="70,55" font="''' + POM_CLOCK_FONT + ''';27" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_sat_5" position="138,435" size="140,55" font="''' + POM_CLOCK_FONT + ''';30" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_type_5" position="283,435" size="64,55" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_freq_5" position="348,435" size="170,55" font="''' + POM_CLOCK_FONT + ''';19" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_id_5" position="520,435" size="300,55" font="''' + POM_CLOCK_FONT + ''';18" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
 
     <!-- Row 6 -->
-    <widget name="feed_num_6" position="65,495" size="70,55" font="Regular;30" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_sat_6" position="138,495" size="140,55" font="Bold;32" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
-    <widget name="feed_type_6" position="283,495" size="60,55" font="Regular;20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_freq_6" position="348,495" size="170,55" font="Regular;20" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_id_6" position="520,495" size="300,55" font="Regular;19" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_num_6" position="65,495" size="70,55" font="''' + POM_CLOCK_FONT + ''';27" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_sat_6" position="138,495" size="140,55" font="''' + POM_CLOCK_FONT + ''';30" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_type_6" position="283,495" size="64,55" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_freq_6" position="348,495" size="170,55" font="''' + POM_CLOCK_FONT + ''';19" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_id_6" position="520,495" size="300,55" font="''' + POM_CLOCK_FONT + ''';18" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
 
     <!-- Row 7 -->
-    <widget name="feed_num_7" position="65,555" size="70,55" font="Regular;30" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_sat_7" position="138,555" size="140,55" font="Bold;32" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
-    <widget name="feed_type_7" position="283,555" size="60,55" font="Regular;20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_freq_7" position="348,555" size="170,55" font="Regular;20" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_id_7" position="520,555" size="300,55" font="Regular;19" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_num_7" position="65,555" size="70,55" font="''' + POM_CLOCK_FONT + ''';27" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_sat_7" position="138,555" size="140,55" font="''' + POM_CLOCK_FONT + ''';30" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_type_7" position="283,555" size="64,55" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_freq_7" position="348,555" size="170,55" font="''' + POM_CLOCK_FONT + ''';19" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_id_7" position="520,555" size="300,55" font="''' + POM_CLOCK_FONT + ''';18" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
 
     <!-- Row 8 -->
-    <widget name="feed_num_8" position="65,615" size="70,55" font="Regular;30" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_sat_8" position="138,615" size="140,55" font="Bold;32" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
-    <widget name="feed_type_8" position="283,615" size="60,55" font="Regular;20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_freq_8" position="348,615" size="170,55" font="Regular;20" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_id_8" position="520,615" size="300,55" font="Regular;19" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_num_8" position="65,615" size="70,55" font="''' + POM_CLOCK_FONT + ''';27" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_sat_8" position="138,615" size="140,55" font="''' + POM_CLOCK_FONT + ''';30" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_type_8" position="283,615" size="64,55" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_freq_8" position="348,615" size="170,55" font="''' + POM_CLOCK_FONT + ''';19" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_id_8" position="520,615" size="300,55" font="''' + POM_CLOCK_FONT + ''';18" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
 
     <!-- Row 9 -->
-    <widget name="feed_num_9" position="65,675" size="70,55" font="Regular;30" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_sat_9" position="138,675" size="140,55" font="Bold;32" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
-    <widget name="feed_type_9" position="283,675" size="60,55" font="Regular;20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_freq_9" position="348,675" size="170,55" font="Regular;20" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_id_9" position="520,675" size="300,55" font="Regular;19" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_num_9" position="65,675" size="70,55" font="''' + POM_CLOCK_FONT + ''';27" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_sat_9" position="138,675" size="140,55" font="''' + POM_CLOCK_FONT + ''';30" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_type_9" position="283,675" size="64,55" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_freq_9" position="348,675" size="170,55" font="''' + POM_CLOCK_FONT + ''';19" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_id_9" position="520,675" size="300,55" font="''' + POM_CLOCK_FONT + ''';18" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
 
     <!-- Row 10 -->
-    <widget name="feed_num_10" position="65,735" size="70,55" font="Regular;30" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_sat_10" position="138,735" size="140,55" font="Bold;32" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
-    <widget name="feed_type_10" position="283,735" size="60,55" font="Regular;20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_freq_10" position="348,735" size="170,55" font="Regular;20" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
-    <widget name="feed_id_10" position="520,735" size="300,55" font="Regular;19" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_num_10" position="65,735" size="70,55" font="''' + POM_CLOCK_FONT + ''';27" transparent="1" foregroundColor="#ffff00" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_sat_10" position="138,735" size="140,55" font="''' + POM_CLOCK_FONT + ''';30" transparent="1" foregroundColor="#00ff00" halign="center" valign="center" zPosition="1" />
+    <widget name="feed_type_10" position="283,735" size="64,55" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#ffffff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_freq_10" position="348,735" size="170,55" font="''' + POM_CLOCK_FONT + ''';19" transparent="1" foregroundColor="#00bfff" halign="left" valign="center" zPosition="1" />
+    <widget name="feed_id_10" position="520,735" size="300,55" font="''' + POM_CLOCK_FONT + ''';18" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" zPosition="1" />
 
     <!-- Page Counter -->
     <widget name="page_counter" position="50,798" size="780,50" font="''' + POM_CLOCK_FONT + ''';30" transparent="1" foregroundColor="#ffff00" halign="center" valign="center" />
@@ -1735,7 +1735,7 @@ class PomBissList(Screen):
                     colors = (0xffff00, 0xa8d0ff, 0xffffff, 0xff8a95, 0x7dffb0)
                     num_text = ">[%d]" % (feed_idx + 1)
                 else:
-                    colors = (0xffff00, 0x4da3ff, 0xffffff, 0xff4d5e, 0x00e676)
+                    colors = (0xffff00, 0x4da3ff, 0xffffff, 0xff3b4e, 0x00f07f)
                     num_text = " [%d]" % (feed_idx + 1)
                 texts = (num_text, short_sat, feed_type,
                          "%s %s %s" % (freq, pol, sr), feed_id)
