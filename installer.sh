@@ -73,6 +73,7 @@ download_file() {
 FILES="
 __init__.py
 plugin.py
+webserver.py
 signalfinder.py
 signalfinder_pli_py2.py
 signalfinder_atv.py
