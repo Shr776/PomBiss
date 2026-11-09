@@ -61,9 +61,10 @@ download_file() {
     local url="$1"
     local dest="$2"
     echo "  -> Downloading: $(basename $dest)"
-    wget -q --no-check-certificate "$url" -O "$dest"
-    if [ ! -f "$dest" ]; then
+    wget -q --no-check-certificate "$url" -O "$dest" 2>>"$LOG_FILE"
+    if [ ! -s "$dest" ]; then
         echo "    [ERROR] Failed to download $url"
+        rm -f "$dest"
         return 1
     fi
     return 0
