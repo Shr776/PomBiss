@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # ============================================================
-#   PomBiss Plugin Installer v2.8
+#   PomBiss Plugin Installer v3.1
 # ============================================================
 #
 #   Sports Feed Viewer for Enigma2
