@@ -1514,14 +1514,12 @@ class PomBissList(Screen):
     <widget name="label_datetime" position="860,927" size="1010,25" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#94a3b8" halign="center" valign="center" zPosition="1" />
 
     <!-- Channels box (developer / channels / support) -->
-    <widget name="cb_border" position="960,965" size="810,84" font="Regular;1" transparent="0" backgroundColor="#2f6fbf" zPosition="-3" />
-    <widget name="cb_fill" position="962,967" size="806,80" font="Regular;1" transparent="0" backgroundColor="#0a1228" zPosition="-2" />
-    <widget name="cb_l1a" position="966,969" size="396,26" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#00e5ff" halign="center" valign="center" zPosition="1" />
-    <widget name="cb_l1b" position="1368,969" size="396,26" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#00e5ff" halign="center" valign="center" zPosition="1" />
-    <widget name="cb_l2a" position="966,995" size="396,26" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#ffaa00" halign="center" valign="center" zPosition="1" />
-    <widget name="cb_l2b" position="1368,995" size="396,26" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#ffaa00" halign="center" valign="center" zPosition="1" />
-    <widget name="cb_l3a" position="966,1021" size="396,26" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#ff4d5e" halign="center" valign="center" zPosition="1" />
-    <widget name="cb_l3b" position="1368,1021" size="396,26" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#e8f1f8" halign="center" valign="center" zPosition="1" />
+    <widget name="cb_l1a" position="988,970" size="372,26" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#00e5ff" halign="left" valign="center" zPosition="1" />
+    <widget name="cb_l1b" position="1388,970" size="372,26" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#00e5ff" halign="left" valign="center" zPosition="1" />
+    <widget name="cb_l2a" position="988,997" size="372,26" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#ffaa00" halign="left" valign="center" zPosition="1" />
+    <widget name="cb_l2b" position="1388,997" size="372,26" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#ffaa00" halign="left" valign="center" zPosition="1" />
+    <widget name="cb_l3a" position="988,1024" size="372,26" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#ff4d5e" halign="left" valign="center" zPosition="1" />
+    <widget name="cb_l3b" position="1388,1024" size="372,26" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#e8f1f8" halign="left" valign="center" zPosition="1" />
 
     <!-- Navigation Help -->
     <widget name="nav_help" position="50,1025" size="780,40" font="Regular;18" transparent="1" foregroundColor="#dddddd" halign="center" valign="center" zPosition="1" />
@@ -1537,6 +1535,8 @@ class PomBissList(Screen):
         _pombiss_list_instance = self
 
         self.allfeeds = []
+        self.master_feeds = []
+        self.filter_spec = None
         self.current_index = 0
         self.page_start = 0
         self.feeds_per_page = 10
@@ -1564,8 +1564,6 @@ class PomBissList(Screen):
         self["feed_count"] = Label("")
         self["header_text"] = Label("PomBiss Feed Viewer")
         self["page_counter"] = Label("[1/1]")
-        self["cb_border"] = Label("")
-        self["cb_fill"] = Label("")
         self["cb_l1a"] = Label("Developer: @Shr776")
         self["cb_l1b"] = Label("Main Channel: @VuSolo")
         self["cb_l2a"] = Label("Support: @PomSat")
@@ -1604,7 +1602,7 @@ class PomBissList(Screen):
         self["key_blue"] = Label("Clear")
         self["key_m3u"] = Label("M3U")
 
-        self["nav_help"] = Label("Up/Down: Select  |  OK: Scan  |  MENU: Options  |  M3U: Export")
+        self["nav_help"] = Label("Up/Down: Select  |  OK: Scan  |  MENU: Options / Filter  |  M3U: Export")
 
         for line in ["preview_border_top", "preview_border_bot", "preview_border_left", "preview_border_right"]:
             self[line] = Label("")
@@ -1621,6 +1619,7 @@ class PomBissList(Screen):
         log_debug("=== open_menu (MENU) ===")
         
         menu_list = [
+            ("Filter / Search Feeds", "filter"),
             ("Contact Us", "contact"),
             ("M3U Manager", "m3u"),
         ]
@@ -1641,7 +1640,9 @@ class PomBissList(Screen):
             choice = answer[1]
             log_debug("Menu choice: %s" % choice)
             
-            if choice == "contact":
+            if choice == "filter":
+                self.open_filter_menu()
+            elif choice == "contact":
                 self.session.open(PomBissContactScreen)
             elif choice == "m3u":
                 self.m3u_manager()
@@ -1675,14 +1676,10 @@ class PomBissList(Screen):
                 return ""
 
             lines.sort(key=get_datetime_key, reverse=True)
-            self.allfeeds = lines
-            self.current_index = 0
-            self.page_start = 0
-            total = len(self.allfeeds)
-            self["feed_count"].setText("[%d Feeds]" % total)
-            log_debug("Loaded %d feeds" % total)
-            self.update_list()
-            self.update_details()
+            self.master_feeds = lines
+            log_debug("Loaded %d feeds" % len(lines))
+            if not self._apply_filter(self.filter_spec):
+                self._apply_filter(None)
 
         except Exception as exc:
             log_debug("download error: %s" % str(exc))
@@ -1837,6 +1834,127 @@ class PomBissList(Screen):
             self.current_index = self.page_start
             self.update_list()
             self.update_details()
+
+    # ------------------------------------------------------------
+    # Filter / Search
+    # ------------------------------------------------------------
+    def _feed_fields(self, line):
+        parts = [p.strip() for p in line.split("=")]
+        while len(parts) < 9:
+            parts.append("")
+        fp = parts[0].split()
+        pos = fp[0] if fp else ""
+        sat_label = parts[3]
+        if not sat_label or sat_label == "0":
+            sat_label = POSITION_FIX.get(pos, sat_label)
+        short_sat = get_short_sat_name(sat_label, pos)
+        ftype = "4:2:2" if "4:2:2" in line else "4:2:0"
+        feed_id = parts[5] or parts[4]
+        text = ("%s %s %s" % (parts[2], feed_id, sat_label)).lower()
+        return short_sat, ftype, text
+
+    def _match(self, line, spec):
+        try:
+            kind, val = spec
+            short_sat, ftype, text = self._feed_fields(line)
+            if kind == "sat":
+                return short_sat == val
+            if kind == "type":
+                return ftype == val
+            if kind == "text":
+                return val.lower() in text
+        except Exception as e:
+            log_debug("filter match error: %s" % str(e))
+        return False
+
+    def _apply_filter(self, spec):
+        master = self.master_feeds
+        if spec is None:
+            result = list(master)
+        else:
+            result = [l for l in master if self._match(l, spec)]
+            if not result:
+                return False
+        self.filter_spec = spec
+        self.allfeeds = result
+        self.current_index = 0
+        self.page_start = 0
+        if spec is None:
+            self["feed_count"].setText("[%d Feeds]" % len(master))
+            self["header_text"].setText("PomBiss Feed Viewer")
+        else:
+            self["feed_count"].setText("[%d/%d Feeds]" % (len(result), len(master)))
+            val = spec[1]
+            if spec[0] == "text":
+                val = '"%s"' % val[:14]
+            self["header_text"].setText("Filter: %s" % val)
+        self.update_list()
+        self.update_details()
+        return True
+
+    def open_filter_menu(self):
+        if not self.master_feeds:
+            return
+        items = [("Show all feeds (%d)" % len(self.master_feeds), "all"),
+                 ("By satellite", "sat"),
+                 ("By type (4:2:0 / 4:2:2)", "type"),
+                 ("Search by name", "text")]
+        self.session.openWithCallback(self._filter_menu_cb, ChoiceBox,
+                                      title="Filter / Search Feeds", list=items)
+
+    def _filter_menu_cb(self, answer):
+        if not answer:
+            return
+        choice = answer[1]
+        if choice == "all":
+            self._apply_filter(None)
+        elif choice == "sat":
+            counts = {}
+            for l in self.master_feeds:
+                sat = self._feed_fields(l)[0]
+                counts[sat] = counts.get(sat, 0) + 1
+
+            def sat_key(name):
+                m = re.search(r"([\d\.]+)\s*([EW])", name, re.IGNORECASE)
+                if not m:
+                    return 9999.0
+                try:
+                    v = float(m.group(1))
+                except:
+                    return 9999.0
+                return -v if m.group(2).upper() == "W" else v
+            items = [("%s   (%d)" % (n, c), n)
+                     for n, c in sorted(counts.items(), key=lambda kv: sat_key(kv[0]))]
+            self.session.openWithCallback(self._filter_value_cb, ChoiceBox,
+                                          title="Select satellite", list=[(t, ("sat", v)) for t, v in items])
+        elif choice == "type":
+            c420 = len([l for l in self.master_feeds if self._feed_fields(l)[1] == "4:2:0"])
+            c422 = len(self.master_feeds) - c420
+            items = [("4:2:0   (%d)" % c420, ("type", "4:2:0")),
+                     ("4:2:2   (%d)" % c422, ("type", "4:2:2"))]
+            self.session.openWithCallback(self._filter_value_cb, ChoiceBox,
+                                          title="Select feed type", list=items)
+        elif choice == "text":
+            try:
+                from Screens.VirtualKeyBoard import VirtualKeyBoard
+                self.session.openWithCallback(self._search_text_cb, VirtualKeyBoard,
+                                              title="Search feed name", text="")
+            except Exception as e:
+                log_debug("keyboard error: %s" % str(e))
+
+    def _filter_value_cb(self, answer):
+        if not answer:
+            return
+        if not self._apply_filter(answer[1]):
+            self.session.open(MessageBox, "No feeds match this filter",
+                              MessageBox.TYPE_INFO, timeout=3)
+
+    def _search_text_cb(self, text):
+        if not text or not text.strip():
+            return
+        if not self._apply_filter(("text", text.strip())):
+            self.session.open(MessageBox, 'No feeds found for "%s"' % text.strip(),
+                              MessageBox.TYPE_INFO, timeout=3)
 
     def refresh(self):
         self.download_feeds()
