@@ -1377,20 +1377,20 @@ class PomBissList(Screen):
     <ePixmap name="bg_main" position="0,0" size="1920,1080" pixmap="''' + plugin_dir + '''/picon/bg_panel.png" alphatest="off" zPosition="-10" />
 
     <!-- Header Clock & Date -->
-    <widget source="global.CurrentTime" render="Label" position="1527,20" size="207,76" font="''' + POM_CLOCK_FONT + ''';72" transparent="1" foregroundColor="#e8f1f8" halign="right" valign="center" zPosition="3" noWrap="1">
+    <widget source="global.CurrentTime" render="Label" position="1197,20" size="207,76" font="''' + POM_CLOCK_FONT + ''';72" transparent="1" foregroundColor="#e8f1f8" halign="right" valign="center" zPosition="3" noWrap="1">
         <convert type="ClockToText">Format:%H:</convert>
     </widget>
-    <widget source="global.CurrentTime" render="Label" position="1734,20" size="150,76" font="''' + POM_CLOCK_FONT + ''';72" transparent="1" foregroundColor="#ff5f1f" halign="left" valign="center" zPosition="3" noWrap="1">
+    <widget source="global.CurrentTime" render="Label" position="1404,20" size="150,76" font="''' + POM_CLOCK_FONT + ''';72" transparent="1" foregroundColor="#ff5f1f" halign="left" valign="center" zPosition="3" noWrap="1">
         <convert type="ClockToText">Format:%M</convert>
     </widget>
-    <widget source="global.CurrentTime" render="Label" position="1525,88" size="400,40" font="Regular;22" transparent="1" foregroundColor="#00ffff" halign="center" valign="center">
+    <widget source="global.CurrentTime" render="Label" position="1195,88" size="400,40" font="Regular;22" transparent="1" foregroundColor="#00ffff" halign="center" valign="center">
         <convert type="ClockToText">Format:%A, %d %B %Y</convert>
     </widget>
 
     <!-- Logo & Title Area -->
-    <ePixmap name="title_logo" position="860,40" size="200,80" pixmap="''' + plugin_dir + '''/picon/PomBiss_logo.png" alphatest="on" zPosition="1" />
+    <ePixmap name="title_logo" position="340,16" size="200,80" pixmap="''' + plugin_dir + '''/picon/PomBiss_logo.png" alphatest="on" zPosition="1" />
 
-    <widget name="version_label" position="50,88" size="780,46" font="''' + POM_CLOCK_FONT + ''';28" transparent="1" foregroundColor="#00ffff" halign="center" valign="center" />
+    <widget name="version_label" position="50,100" size="780,40" font="''' + POM_CLOCK_FONT + ''';28" transparent="1" foregroundColor="#00ffff" halign="center" valign="center" />
 
     <!-- Left Panel (Feed List Header) -->
     <widget name="list_header" position="60,150" size="200,40" font="''' + POM_CLOCK_FONT + ''';22" transparent="1" foregroundColor="#00ff88" halign="left" valign="center" />
@@ -1513,8 +1513,15 @@ class PomBissList(Screen):
     <!-- Datetime Info -->
     <widget name="label_datetime" position="860,927" size="1010,25" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#94a3b8" halign="center" valign="center" zPosition="1" />
 
-    <!-- Brand Label -->
-    <widget name="brand_label" position="960,972" size="810,35" font="Regular;24" transparent="1" foregroundColor="#ffffff" halign="center" valign="center" zPosition="1" />
+    <!-- Channels box (developer / channels / support) -->
+    <widget name="cb_border" position="960,965" size="810,84" font="Regular;1" transparent="0" backgroundColor="#2f6fbf" zPosition="-3" />
+    <widget name="cb_fill" position="962,967" size="806,80" font="Regular;1" transparent="0" backgroundColor="#0a1228" zPosition="-2" />
+    <widget name="cb_l1a" position="966,969" size="396,26" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#00e5ff" halign="center" valign="center" zPosition="1" />
+    <widget name="cb_l1b" position="1368,969" size="396,26" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#00e5ff" halign="center" valign="center" zPosition="1" />
+    <widget name="cb_l2a" position="966,995" size="396,26" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#ffaa00" halign="center" valign="center" zPosition="1" />
+    <widget name="cb_l2b" position="1368,995" size="396,26" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#ffaa00" halign="center" valign="center" zPosition="1" />
+    <widget name="cb_l3a" position="966,1021" size="396,26" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#ff4d5e" halign="center" valign="center" zPosition="1" />
+    <widget name="cb_l3b" position="1368,1021" size="396,26" font="''' + POM_CLOCK_FONT + ''';20" transparent="1" foregroundColor="#e8f1f8" halign="center" valign="center" zPosition="1" />
 
     <!-- Navigation Help -->
     <widget name="nav_help" position="50,1025" size="780,40" font="Regular;18" transparent="1" foregroundColor="#dddddd" halign="center" valign="center" zPosition="1" />
@@ -1557,7 +1564,14 @@ class PomBissList(Screen):
         self["feed_count"] = Label("")
         self["header_text"] = Label("PomBiss Feed Viewer")
         self["page_counter"] = Label("[1/1]")
-        self["brand_label"] = Label("join us in Telegram @VUSOLO")
+        self["cb_border"] = Label("")
+        self["cb_fill"] = Label("")
+        self["cb_l1a"] = Label("Developer: @Shr776")
+        self["cb_l1b"] = Label("Main Channel: @VuSolo")
+        self["cb_l2a"] = Label("Support: @PomSat")
+        self["cb_l2b"] = Label("Feed: @PomFeed / @FeedHunter")
+        self["cb_l3a"] = Label("YouTube: @VUSOLO")
+        self["cb_l3b"] = Label("GitHub: Shr776 / PomBiss")
         self["version_label"] = Label("PomBiss Plugin v%s" % self.PLUGIN_VERSION)
         self["title_logo"] = Pixmap()
         self["bg_select"] = Pixmap()
